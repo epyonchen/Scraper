@@ -1,0 +1,19 @@
+
+# Ignore complie files
+*.xml
+
+*.log
+*.pyc
+
+# Ignore environment and result files
+/Archive
+/InSpy
+/Reference
+/Result
+/venv
+/__pycache__
+/.idea
+
+# Ignore credential and testing files
+keys.py
+test.py
