@@ -94,5 +94,5 @@ if __name__ == '__main__':
 
         one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(site, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
-        scrapydb.upload(one_city_df, 'Scrapy_{}'.format(site), str(start), str(end), timestamp=date, source=site, city=city)
+        scrapydb.upload(one_city_df, 'Scrapy_{}'.format(site), start=start, end=end, timestamp=date, source=site, city=city)
     scrapydb.close()

@@ -33,8 +33,17 @@ class Mssql:
         return self.run(query)
 
     # insert df into table
-    def upload(self, load_list, table, new_id=True, dedup=True, dedup_id='Source_ID', start=1, end=0, **logs):
+    def upload(self, load_list, table, new_id=False, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
         # load_list = load_list[colnames]
+
+        # Get start and end info
+        if 'start' in logs.keys():
+            start = str(logs['start'])
+            del logs['start']
+        if 'end' in logs.keys():
+            end = str(logs['end'])
+            del logs['end']
+
         columns = list(load_list)
         columns = ' [' + '], ['.join(columns) + ']'
         value_default = '({})'

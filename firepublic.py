@@ -63,8 +63,8 @@ class FirePublic:
         page_soup = BeautifulSoup(response.text, 'html.parser')
         return page_soup
 
-    # Call seleium and renew form data
-    def renew_form_data(self):
+    # Renew session with form data and cookies
+    def renew_session(self):
         page = pm.Page(self.searchbase)
         renew_soup = BeautifulSoup(page.driver.page_source, 'lxml')
         renew_form = renew_soup.find_all('input', attrs={'id': list(self.form_data.keys())})
@@ -72,6 +72,8 @@ class FirePublic:
             if form['value'] != '':
                 self.form_data[form['id']] = form['value']
             self.compSession = requests.Session()
+        renew_cookies = page.get_requests_cookies()
+        self.compSession.cookies.update(renew_cookies)
         page.close()
         self.switch = True
 
@@ -142,7 +144,7 @@ if __name__ == '__main__':
         df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}_{}.xlsx'.format(site, date, start, end), index=False,
                     header=True, sheet_name=site)
         scrapydb = db.Mssql(keys.dbconfig)
-        scrapydb.upload(df, 'Scrapy_{}'.format(site), str(start), str(end), timestamp=date, source=site)
+        scrapydb.upload(df, 'Scrapy_{}'.format(site), start=str(start), end=str(end), timestamp=date, source=site)
         scrapydb.close()
     else:
         logging.info('Fail this run at page {}.'.format(end))
