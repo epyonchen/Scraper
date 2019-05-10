@@ -23,7 +23,7 @@ class Amap:
         self.search_base = 'https://restapi.amap.com/v3/place/text?'
 
     def search_location_api_call(self, amap_key, **kwargs):
-        query = 'https://restapi.amap.com/v3/place/text?'# keywords=北京大学&city=beijing&output=xml&offset=20&page=1&key=<用户的key>&extensions=all
+        query = self.search_base # keywords=北京大学&city=beijing&output=xml&offset=20&page=1&key=<用户的key>&extensions=all
 
         for key, value in kwargs.items():
             query = query + '&' + key + '=' + str(value)
