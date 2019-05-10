@@ -33,7 +33,7 @@ class Mssql:
         return self.run(query)
 
     # insert df into table
-    def upload(self, load_list, table, new_id=True, dedup=True, dedup_id='Source_ID', *start_end, **logs):
+    def upload(self, load_list, table, new_id=True, dedup=True, dedup_id='Source_ID', start=1, end=0, **logs):
         # load_list = load_list[colnames]
         columns = list(load_list)
         columns = ' [' + '], ['.join(columns) + ']'
@@ -94,8 +94,8 @@ class Mssql:
         drop_temp = 'DROP TABLE #Temp_{}'.format(table)
         # query = 'SELECT {} FROM #Temp_{} WHERE Office_ID NOT IN (SELECT DISTINCT Office_ID FROM [{}].[{}])'.format(columns, table, self.schema, table)
         if self.run(insert_query):
-            if bool(start_end):
-                self.log(table, *start_end, **logs)
+            if start < end:
+                self.log(table, start, end, **logs)
         self.run(drop_temp)
 
     # Select all
@@ -170,7 +170,7 @@ class Mssql:
     def close(self):
         self.conn.close()
 
-    def log(self, table, *start_end, **logs):
+    def log(self, table, start, end, **logs):
 
         log_columns = '[UID], [Start], [End], [Table], [' + '], ['.join(logs.keys()) + ']'
         log_table = 'Scrapy_Logs'
@@ -178,7 +178,7 @@ class Mssql:
         if not self.exist(log_table):
             self.create_table('[{}].[{}]'.format(self.schema, log_table), log_columns)
 
-        log_values = 'N\'' + '\',N\''.join(list(start_end) + [table]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
+        log_values = 'N\'' + '\',N\''.join([start, end, table]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
         log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(log_table, log_values)
 
         query = 'INSERT INTO [{}].[{}] ({}) VALUES {}'.format(self.schema, log_table, log_columns, log_values)
@@ -186,6 +186,7 @@ class Mssql:
         if self.run(query):
             logging.info('Log current job.')
 
+# TODO: update all db function
 
 if __name__ == '__main__':
     import keys
