@@ -27,21 +27,24 @@ class Mssql:
 
     # Create table
     def create_table(self, table, columns):
-        # if self.exist(table) is True:
-        #     print('Table ')
-
         columns_init = columns.replace(',', ' NVARCHAR(255),') + ' NVARCHAR(255)'
         query = 'CREATE TABLE {} ({})'.format(table, columns_init)
         logging.info('Creat table {}'.format(table))
-        # logging.info('Create table {} successfully.'.format(table))
         return self.run(query)
 
     # insert df into table
-    def upload(self, load_list, table, *start_end, **logs):
+    def upload(self, load_list, table, new_id=True, dedup=True, dedup_id='Source_ID', *start_end, **logs):
         # load_list = load_list[colnames]
         columns = list(load_list)
-        columns = '[UID],' + ' [' + '], ['.join(columns) + '], [' + '], ['.join(logs.keys()) + ']'
-        log_values = '\',N\''.join(logs.values())
+        columns = ' [' + '], ['.join(columns) + ']'
+        value_default = '({})'
+        if new_id:
+            columns = '[UID],' + columns
+            value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()),{}'.format(table))
+        if not bool(logs):
+            columns = columns + ', [' + '], ['.join(logs.keys()) + ']'
+            log_values = '{}N\'' + '\',N\''.join(logs.values()) + '\''
+            value_default = value_default.format(log_values)
 
         # If table does not exist, create one
         if not self.exist(table):
@@ -55,10 +58,13 @@ class Mssql:
         total = 0
         if not self.exist('#Temp_{}'.format(table)):
             self.create_table('#Temp_{}'.format(table), columns)
+        # Built insert query
         for index, row in load_list.iterrows():
+            # Replace ' as empty
             row = map(lambda x: str(x).replace('\'', ''), row)
-            value = '\',N\''.join(row).replace('nan', '')
-            value = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), N\'{}\', N\'{}\')'.format(table, value, log_values)
+
+            value = '\',N' + '\',N\''.join(row).replace('nan', '') + '\''
+            value = value_default.format(value)
             if values is None:
                 values = value
             else:
@@ -78,14 +84,19 @@ class Mssql:
                 values = None
                 count = 0
 
-        # Load to table
-        insert_query = 'INSERT INTO [{}].[{}] ({}) (SELECT {} FROM #Temp_{} WHERE Source_ID NOT IN (SELECT DISTINCT Source_ID FROM [{}].[{}]))'.format(self.schema, table, columns, columns, table, self.schema, table)
+        # Build deduplicate where condition
+        if dedup:
+            where_cond = 'WHERE {} NOT IN (SELECT DISTINCT {} FROM [{}].[{}])'.format(dedup_id, dedup_id, self.schema, table)
+        else:
+            where_cond = ''
+        insert_query = 'INSERT INTO [{}].[{}] ({}) (SELECT {} FROM #Temp_{}) {}'.format(self.schema, table, columns, columns, table, where_cond)
+
         drop_temp = 'DROP TABLE #Temp_{}'.format(table)
         # query = 'SELECT {} FROM #Temp_{} WHERE Office_ID NOT IN (SELECT DISTINCT Office_ID FROM [{}].[{}])'.format(columns, table, self.schema, table)
         if self.run(insert_query):
-            self.log(table, *start_end, **logs)
+            if bool(start_end):
+                self.log(table, *start_end, **logs)
         self.run(drop_temp)
-
 
     # Select all
     def get_all(self, table, columns='*'):
@@ -172,8 +183,8 @@ class Mssql:
 
         query = 'INSERT INTO [{}].[{}] ({}) VALUES {}'.format(self.schema, log_table, log_columns, log_values)
 
-        self.run(query)
-        logging.info('Log current job.')
+        if self.run(query):
+            logging.info('Log current job.')
 
 
 if __name__ == '__main__':
