@@ -107,7 +107,7 @@ class FirePublic:
                     logging.info('Stop run due to: {}'.format(e))
                     break
                 else:
-                    fp.renew_form_data()
+                    fp.renew_session()
                     logging.info('Restart at page {}'.format(i))
                     i -= 1
                     continue

@@ -195,7 +195,6 @@ class Mssql:
         if self.run(query):
             logging.info('Log current job.')
 
-# TODO: update all db function
 
 if __name__ == '__main__':
     import keys
