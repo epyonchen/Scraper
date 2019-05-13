@@ -112,7 +112,6 @@ class Mssql:
         if columns != '*':
             columns = ', '.join(columns)
         query = 'SELECT {} FROM [{}].[{}]'.format(columns, self.schema, table)
-        print(query)
         result = pd.read_sql(query, self.conn)
         df = pd.DataFrame(result)
 
@@ -141,7 +140,7 @@ class Mssql:
 
     # Check if table exists
     def exist(self, table):
-        query = 'IF EXISTS (SELECT * FROM {}.INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE \'%{}%\') ' \
+        query = 'IF EXISTS (SELECT * FROM {}.INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE \'%{}\') ' \
                 'BEGIN SELECT 1 ' \
                 'END ' \
                 'ELSE SELECT 0'.format(self.database, table)
@@ -167,13 +166,18 @@ class Mssql:
             return False
 
     # Delete a load
-    def delete_load(self, table, **kwargs):
-        condition = 'WHERE 1 '
-        for key, value in kwargs:
-            condition = condition + 'AND [{}] = N\'{}\''.format(key, value)
+    def delete(self, table, **kwargs):
+        if not self.exist(table):
+            return None
+        condition = 'WHERE '
+        if kwargs is None:
+            condition = condition + '1'
+        else:
+            for key, value in kwargs.items():
+                condition = condition + 'AND [{}] = N\'{}\''.format(key, value)
         query = 'DELETE FROM [{}].[{}] {}'.format(self.schema, table, condition)
         logging.info('Delete record in {}, {}'.format(table, condition))
-        return self.run(query)
+        self.run(query)
 
     # Close connection
     def close(self):
