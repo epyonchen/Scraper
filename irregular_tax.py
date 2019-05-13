@@ -5,12 +5,16 @@ import pandas as pd
 import db
 import logging
 import pagemanipulate as pm
-from datetime import date, timedelta
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from datetime import date
 from dateutil.relativedelta import relativedelta
 from PIL import Image
 import baidu_api
 import os
 import requests
+
 
 
 
@@ -27,11 +31,13 @@ PRE3MONTH = (date.today() - relativedelta(months=4)).strftime('%Y-%m-%d')
 
 class Tax:
 
-    def __init__(self, link):
+    def __init__(self, link, username, password):
 
         self.base = link
         # self.site = site
         # self.server = server
+        self.username = username
+        self.password = password
         self.web = pm.Page(self.base, 'normal')
         self.web.driver.implicitly_wait(10)
         self.session = requests.session()
@@ -74,25 +80,30 @@ class Tax:
                 self.web.driver.find_element_by_xpath('//*[@id="crcpic"]').click()
 
     # Login
-    def login(self):
+    def login(self, username, password):
         while True:
             vcode = self.get_vcode()
-            self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[3]/td[1]/input', value=keys.tax['name'])
-            self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[4]/td/input', value=keys.tax['pwd'])
+            self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[3]/td[1]/input', value=username)
+            self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[4]/td/input', value=password)
             self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[5]/td[1]/input', value=vcode)
             self.web.click(path='//*[@id="loginbt"]')
             if '验证码错误' in self.web.driver.page_source:
                 logging.info('Validation code is incorrect, try again.')
                 continue
             else:
-                logging.info('Sucessfully login.')
-                break
-                # print(self.web.driver.page_source)
+                try:
+                    element = WebDriverWait(self.web.driver, 10).until(
+                        EC.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td[1]'))
+                    )
+                finally:
+                    logging.info('Sucessfully login.')
+                    break
+
 
     # Export excel with tax records
     def get(self, startdate=PRE3MONTH, enddate=TIMESTAMP, valid=''):
         logging.info('Query start date: {}, end date: {}, valid: {}'.format(str(startdate), str(enddate), str(valid)))
-        query = self.base + '/cxtj/getInvInfoMx.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&xsdjh='.format(str(startdate), str(enddate), str(valid))
+        query = self.base + 'cxtj/getInvInfoMx.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&xsdjh='.format(str(startdate), str(enddate), str(valid))
         self.check_last_query()
         try:
             # self.web.driver.get(query1)
@@ -115,9 +126,9 @@ class Tax:
         self.session.cookies.update(self.cookies)
 
     @classmethod
-    def run(cls, site, server, link):
-        t = cls(link)
-        t.login()
+    def run(cls, site, server, link, username, password):
+        t = cls(link, username, password)
+        t.login(username=username, password=password)
         t.get()
         t.web.close()
         tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息')
@@ -129,8 +140,6 @@ class Tax:
 
 
 if __name__ == '__main__':
-    # site = '914401017181366603'
-    # server = '13'
 
     scrapydb = db.Mssql(keys.dbconfig)
 
@@ -138,9 +147,10 @@ if __name__ == '__main__':
     logging.info('---------------   Irregular tax ratio query.   ---------------')
     logging.info('Delete existing records.')
     scrapydb.delete(TABLE_NAME, timestamp=YESTERDAY)
+
     for index, row in access.iterrows():
         logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
-        result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'])
+        result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TIMESTAMP,  timestamp=TIMESTAMP)
 
     scrapydb.close()
