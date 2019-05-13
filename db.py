@@ -34,7 +34,7 @@ class Mssql:
 
     # insert df into table
     def upload(self, load_list, table, new_id=False, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
-        print(not bool(logs))
+
         # Get start and end info
         if 'start' in logs.keys():
             start = str(logs['start'])
