@@ -131,8 +131,8 @@ class Tax:
         t.login(username=username, password=password)
         t.get()
         t.web.close()
-        tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息')
-        tax_df = tax_df.dropna(subset=['序号'])
+        tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息', dtype=str)
+        tax_df = tax_df[tax_df['序号'] != 'nan']
         tax_df['企业税号'] = site
         tax_df['服务器号'] = server
 
