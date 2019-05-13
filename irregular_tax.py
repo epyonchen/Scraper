@@ -5,14 +5,13 @@ import pandas as pd
 import db
 import logging
 import pagemanipulate as pm
-from datetime import date
+from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from PIL import Image
 import baidu_api
 import os
 import requests
-from bs4 import BeautifulSoup
-from selenium.webdriver.support.ui import WebDriverWait
+
 
 
 SCRIPT_DIR = os.getcwd()
@@ -20,17 +19,19 @@ PIC_DIR = SCRIPT_DIR + r'\Vcode'
 SCREENSHOT_PATH = PIC_DIR + r'\screen_shot.jpg'
 VCODE_PATH = PIC_DIR + r'\vcode.jpg'
 FILE_PATH = SCRIPT_DIR + r'\Result\Irregular_Tax.xls'
+TABLE_NAME = 'Scrapy_Irregular_TAX'
 TIMESTAMP = date.today().strftime('%Y-%m-%d')
-PRE3MONTH = (date.today() - relativedelta(month=4)).strftime('%Y-%m-%d')
+YESTERDAY = (date.today() - relativedelta(days=1)).strftime('%Y-%m-%d')
+PRE3MONTH = (date.today() - relativedelta(months=4)).strftime('%Y-%m-%d')
 
 
 class Tax:
 
-    def __init__(self, site, server):
+    def __init__(self, link):
 
-        self.base = 'http://58.246.29.125:8083' + '/' + site + '_' + server
-        self.site = site
-        self.server = server
+        self.base = link
+        # self.site = site
+        # self.server = server
         self.web = pm.Page(self.base, 'normal')
         self.web.driver.implicitly_wait(10)
         self.session = requests.session()
@@ -69,7 +70,7 @@ class Tax:
                 logging.info('Get validation code "{}". Try to login.'.format(vcode))
                 return vcode
             else:
-                logging.info('Cannot recognize validation code, try again.')
+                # logging.info('Cannot recognize validation code, try again.')
                 self.web.driver.find_element_by_xpath('//*[@id="crcpic"]').click()
 
     # Login
@@ -113,19 +114,33 @@ class Tax:
         self.cookies = self.web.get_requests_cookies()
         self.session.cookies.update(self.cookies)
 
+    @classmethod
+    def run(cls, site, server, link):
+        t = cls(link)
+        t.login()
+        t.get()
+        t.web.close()
+        tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息')
+        tax_df = tax_df.dropna(subset=['序号'])
+        tax_df['企业税号'] = site
+        tax_df['服务器号'] = server
+
+        return tax_df
+
 
 if __name__ == '__main__':
-    site = '914401017181366603'
-    server = '13'
-    t = Tax(site, server)
-    t.login()
-    t.get()
-    t.web.close()
-
-    tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息')
-    tax_df = tax_df.dropna(subset=['序号'])
-    tax_df['企业税号'] = site
-    tax_df['服务器号'] = server
+    # site = '914401017181366603'
+    # server = '13'
 
     scrapydb = db.Mssql(keys.dbconfig)
-    scrapydb.upload(tax_df, 'Scrapy_Irregular_TAX', False, False, None, start=PRE3MONTH, end=TIMESTAMP,  timestamp=TIMESTAMP)
+
+    access = scrapydb.get_all(TABLE_NAME + '_Access')
+    logging.info('---------------   Irregular tax ratio query.   ---------------')
+    logging.info('Delete existing records.')
+    scrapydb.delete(TABLE_NAME, timestamp=YESTERDAY)
+    for index, row in access.iterrows():
+        logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
+        result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'])
+        scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TIMESTAMP,  timestamp=TIMESTAMP)
+
+    scrapydb.close()
