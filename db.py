@@ -34,8 +34,7 @@ class Mssql:
 
     # insert df into table
     def upload(self, load_list, table, new_id=False, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
-        # load_list = load_list[colnames]
-
+        print(not bool(logs))
         # Get start and end info
         if 'start' in logs.keys():
             start = str(logs['start'])
@@ -50,9 +49,9 @@ class Mssql:
         if new_id:
             columns = '[UID],' + columns
             value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()),{}'.format(table))
-        if not bool(logs):
+        if bool(logs):
             columns = columns + ', [' + '], ['.join(logs.keys()) + ']'
-            log_values = '{}N\'' + '\',N\''.join(logs.values()) + '\''
+            log_values = '{} ,N\'' + '\',N\''.join(logs.values()) + '\''
             value_default = value_default.format(log_values)
 
         # If table does not exist, create one
@@ -72,8 +71,9 @@ class Mssql:
             # Replace ' as empty
             row = map(lambda x: str(x).replace('\'', ''), row)
 
-            value = '\',N' + '\',N\''.join(row).replace('nan', '') + '\''
+            value = 'N\'' + '\',N\''.join(row).replace('nan', '') + '\''
             value = value_default.format(value)
+
             if values is None:
                 values = value
             else:
@@ -169,12 +169,14 @@ class Mssql:
     def delete(self, table, **kwargs):
         if not self.exist(table):
             return None
-        condition = 'WHERE '
+
         if kwargs is None:
-            condition = condition + '1'
+            condition = None
         else:
+            cond = []
             for key, value in kwargs.items():
-                condition = condition + 'AND [{}] = N\'{}\''.format(key, value)
+                cond.append('[{}] = N\'{}\''.format(key, value))
+            condition = 'WHERE ' + 'AND '.join(cond)
         query = 'DELETE FROM [{}].[{}] {}'.format(self.schema, table, condition)
         logging.info('Delete record in {}, {}'.format(table, condition))
         self.run(query)
