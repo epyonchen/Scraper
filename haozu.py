@@ -7,11 +7,14 @@ Created on Sun Dec 21st 2018
 import random
 import time
 import re
-import datetime
 import db
 import keys
-import logging
+from utility_commons import *
 from scrapers import TwoStepScraper
+
+
+SITE = 'Lianjia'
+TABLENAME = 'Scrapy_Lianjia'
 
 
 class Haozu(TwoStepScraper):
@@ -51,7 +54,7 @@ class Haozu(TwoStepScraper):
         for row in detail_list:
             item_detail = dict()
             if 'data-content' in row.attrs.keys():
-                item_detail['Source_ID'] = city + '_' + re.compile(r'house\d+').search(row.attrs['onclick']).group(0)
+                item_detail['Source_ID'] = self.city + '_' + re.compile(r'house\d+').search(row.attrs['onclick']).group(0)
             else:
                 continue
 
@@ -69,7 +72,7 @@ class Haozu(TwoStepScraper):
                         item_detail[col['title']] = col.i.text
 
             item_detail['Property'] = item_name
-            item_detail['Property_ID'] = city + '_' + item_id
+            item_detail['Property_ID'] = self.city + '_' + item_id
             item_detail_list.append(item_detail)
         return item_detail_list
 
@@ -85,17 +88,14 @@ class Haozu(TwoStepScraper):
 
 if __name__ == '__main__':
 
-    site = 'Haozu'
-    date = datetime.date.today().strftime('%Y-%m-%d')
-    cities = ['bj']  #
-    scrapydb = db.Mssql(keys.dbconfig)
+    cities = ['bj', 'sh', 'cd', 'gz', 'sz']  #
+    with db.Mssql(keys.dbconfig) as scrapydb:
+        for city in cities:
 
-    for city in cities:
+            one_city_df, start, end = Haozu.run(city=city)  #, from_page=1, to_page=1
+            logging.info('Start from page {}, stop at page {}.'.format(start, end))
 
-        one_city_df, start, end = Haozu.run(city=city)  #, from_page=1, to_page=1
-        logging.info('Start from page {}, stop at page {}.'.format(start, end))
+            # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(site, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
-        one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(site, city, date), sheet_name='{} {}'.format(site, city), index=False)
-
-        scrapydb.upload(one_city_df, 'Scrapy_{}'.format(site), start=start, end=end, timestamp=date, source=site, city=city)
-    scrapydb.close()
+            scrapydb.upload(one_city_df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
+    # scrapydb.close()

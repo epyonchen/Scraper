@@ -8,11 +8,13 @@ Created on Sun Jan 9th 2019
 import random
 import time
 import re
-import datetime
 import db
 import keys
-import logging
+from utility_commons import *
 from scrapers import TwoStepScraper
+
+SITE = 'Diandianzu'
+TABLENAME = 'Scrapy_Diandianzu'
 
 
 class Diandianzu(TwoStepScraper):
@@ -82,17 +84,15 @@ class Diandianzu(TwoStepScraper):
 
 
 if __name__ == '__main__':
-    site = 'Diandianzu'
-    date = datetime.date.today().strftime('%Y-%m-%d')
+
     cities = ['gz', 'sz', 'sh', 'bj', 'cd']
-    scrapydb = db.Mssql(keys.dbconfig)
+    with db.Mssql(keys.dbconfig) as scrapydb:
 
-    for city in cities:
+        for city in cities:
 
-        one_city_df, start, end = Diandianzu.run(city=city)  #, from_page=1, to_page=1
-        logging.info('Start from page {}, stop at page {}.'.format(start, end))
+            one_city_df, start, end = Diandianzu.run(city=city)  #, from_page=1, to_page=1
+            logging.info('Start from page {}, stop at page {}.'.format(start, end))
 
-        one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(site, city, date), sheet_name='{} {}'.format(site, city), index=False)
+            # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
-        scrapydb.upload(one_city_df, 'Scrapy_{}'.format(site), start=start, end=end, timestamp=date, source=site, city=city)
-    scrapydb.close()
+            scrapydb.upload(one_city_df, 'Scrapy_{}'.format(SITE), start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)

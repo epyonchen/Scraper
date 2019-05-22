@@ -23,7 +23,16 @@ class Mssql:
         self.schema = config['schema']
         self.conn = pymssql.connect(self.server, self.user, self.password, self.database)
         self.cur = self.conn.cursor()
-        logging.info('Connect to database: {}'.format(self.database))
+
+    def __enter__(self):
+        logging.info('Connect database: {}'.format(self.database))
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            logging.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
+        logging.info('Disconnect database: {}'.format(self.database))
+        self.close()
 
     # Create table
     def create_table(self, table, columns):
@@ -33,22 +42,22 @@ class Mssql:
         return self.run(query)
 
     # insert df into table
-    def upload(self, load_list, table, new_id=False, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
+    def upload(self, df, table, new_id=True, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
 
-        # Get start and end info
-        if 'start' in logs.keys():
-            start = str(logs['start'])
-            del logs['start']
-        if 'end' in logs.keys():
-            end = str(logs['end'])
-            del logs['end']
+        # # Get start and end info
+        # if 'start' in logs.keys():
+        #     start = str(logs['start'])
+        #     del logs['start']
+        # if 'end' in logs.keys():
+        #     end = str(logs['end'])
+        #     del logs['end']
 
-        columns = list(load_list)
+        columns = list(df)
         columns = ' [' + '], ['.join(columns) + ']'
         value_default = '({})'
         if new_id:
             columns = '[UID],' + columns
-            value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()),{}'.format(table))
+            value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID())'.format(table) + ',{}')
         if bool(logs):
             columns = columns + ', [' + '], ['.join(logs.keys()) + ']'
             log_values = '{} ,N\'' + '\',N\''.join(logs.values()) + '\''
@@ -67,7 +76,7 @@ class Mssql:
         if not self.exist('#Temp_{}'.format(table)):
             self.create_table('#Temp_{}'.format(table), columns)
         # Built insert query
-        for index, row in load_list.iterrows():
+        for index, row in df.iterrows():
             # Replace ' as empty
             row = map(lambda x: str(x).replace('\'', ''), row)
 
@@ -81,14 +90,14 @@ class Mssql:
 
             count += 1
             total += 1
-            if (count % 500 == 0) or (total >= len(load_list.index)):
+            if (count % 500 == 0) or (total >= len(df.index)):
                 temp_query = 'INSERT INTO #Temp_{} ({}) VALUES {}'.format(table, columns, values)
                 # query = 'INSERT INTO [{}].[{}] ({}) VALUES {}'.format(self.schema, table, columns, values)
 
                 # If error, delete all records related this load
                 logging.info('Insert {} rows'.format(total))
                 if not self.run(temp_query):
-                    # self.delete_load(table, kwargs)
+
                     return False
                 values = None
                 count = 0
@@ -98,7 +107,7 @@ class Mssql:
             where_cond = 'WHERE {} NOT IN (SELECT DISTINCT {} FROM [{}].[{}])'.format(dedup_id, dedup_id, self.schema, table)
         else:
             where_cond = ''
-        insert_query = 'INSERT INTO [{}].[{}] ({}) (SELECT {} FROM #Temp_{}) {}'.format(self.schema, table, columns, columns, table, where_cond)
+        insert_query = 'INSERT INTO [{}].[{}] ({}) (SELECT {} FROM #Temp_{} {})'.format(self.schema, table, columns, columns, table, where_cond)
 
         drop_temp = 'DROP TABLE #Temp_{}'.format(table)
         # query = 'SELECT {} FROM #Temp_{} WHERE Office_ID NOT IN (SELECT DISTINCT Office_ID FROM [{}].[{}])'.format(columns, table, self.schema, table)
@@ -170,8 +179,8 @@ class Mssql:
         if not self.exist(table):
             return None
 
-        if kwargs is None:
-            condition = None
+        if not bool(kwargs):
+            condition = ''
         else:
             cond = []
             for key, value in kwargs.items():
