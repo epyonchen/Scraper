@@ -11,7 +11,7 @@ import logging
 
 # path
 SCRIPT_DI = '1'
-SCRIPT_DIR = os.getcwd()
+SCRIPT_DIR = os.path.dirname(__file__)
 PIC_DIR = SCRIPT_DIR + r'\Vcode'
 FILE_DIR = SCRIPT_DIR + r'\Result'
 
