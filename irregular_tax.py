@@ -1,4 +1,10 @@
-import db
+"""
+Created on Thur May 11th 2019
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 import keys
 import re
 import pandas as pd
@@ -8,25 +14,17 @@ import pagemanipulate as pm
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from datetime import date
-from dateutil.relativedelta import relativedelta
 from PIL import Image
 import baidu_api
-import os
 import requests
+import time
+from utility_commons import *
 
 
-
-
-SCRIPT_DIR = os.getcwd()
-PIC_DIR = SCRIPT_DIR + r'\Vcode'
 SCREENSHOT_PATH = PIC_DIR + r'\screen_shot.jpg'
 VCODE_PATH = PIC_DIR + r'\vcode.jpg'
-FILE_PATH = SCRIPT_DIR + r'\Result\Irregular_Tax.xls'
+FILE_PATH = FILE_DIR + r'\Irregular_Tax.xls'
 TABLE_NAME = 'Scrapy_Irregular_TAX'
-TIMESTAMP = date.today().strftime('%Y-%m-%d')
-YESTERDAY = (date.today() - relativedelta(days=1)).strftime('%Y-%m-%d')
-PRE3MONTH = (date.today() - relativedelta(months=4)).strftime('%Y-%m-%d')
 
 
 class Tax:
@@ -99,7 +97,6 @@ class Tax:
                     logging.info('Sucessfully login.')
                     break
 
-
     # Export excel with tax records
     def get(self, startdate=PRE3MONTH, enddate=TIMESTAMP, valid=''):
         logging.info('Query start date: {}, end date: {}, valid: {}'.format(str(startdate), str(enddate), str(valid)))
@@ -112,8 +109,10 @@ class Tax:
             response = self.session.get(query)
             with open(FILE_PATH, 'wb') as writer:
                 writer.write(response.content)
+            return True
         except Exception as e:
             logging.error(e)
+            return False
 
     # Check if file from previous exists, and delete it
     def check_last_query(self):
@@ -127,10 +126,15 @@ class Tax:
 
     @classmethod
     def run(cls, site, server, link, username, password):
-        t = cls(link, username, password)
-        t.login(username=username, password=password)
-        t.get()
-        t.web.close()
+        while True:
+            t = cls(link, username, password)
+            t.login(username=username, password=password)
+            success = t.get()
+            t.web.close()
+            if success:
+                break
+            else:
+                logging.info('Restart job, Entity {} Server {}'.format(site, server))
         tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息', dtype=str)
         tax_df = tax_df[tax_df['序号'] != 'nan']
         tax_df['企业税号'] = site
@@ -141,16 +145,18 @@ class Tax:
 
 if __name__ == '__main__':
 
-    scrapydb = db.Mssql(keys.dbconfig)
+    with db.Mssql(keys.dbconfig) as scrapydb:
 
-    access = scrapydb.get_all(TABLE_NAME + '_Access')
-    logging.info('---------------   Irregular tax ratio query.   ---------------')
-    logging.info('Delete existing records.')
-    scrapydb.delete(TABLE_NAME, timestamp=YESTERDAY)
+        access = scrapydb.get_all(TABLE_NAME + '_Access')
+        logging.info('---------------   Irregular tax ratio query.   ---------------')
+        logging.info('Delete existing records.')
+        scrapydb.delete(TABLE_NAME)
 
-    for index, row in access.iterrows():
-        logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
-        result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
-        scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TIMESTAMP,  timestamp=TIMESTAMP)
-
-    scrapydb.close()
+        for index, row in access.iterrows():
+            # if row['Entity_Name'] == '91350100MA346ATX0R':
+                logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
+                result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
+                scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
+                time.sleep(20)
+            # else:
+            #     continue
