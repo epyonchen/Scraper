@@ -5,8 +5,8 @@ import time
 import random
 import gecodeconvert as gc
 import logging
-import re
-import os
+from aip import AipOcr
+
 
 class Baidu:
 
@@ -15,8 +15,6 @@ class Baidu:
         if api == 'map':
             self.base = 'http://api.map.baidu.com/place/v2/search?'#query={}&ak=' + keys.baidu['map']
         elif api == 'ocr':
-            from aip import AipOcr
-            from PIL import Image
             self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
 
     # def get_token(self, ak=keys.baidu['ocr_ak'], sk=keys.baidu['ocr_sk']):
@@ -35,7 +33,15 @@ class Baidu:
 
     def ocr_api_call(self, image, path, bin_threshold=100, **kwargs):
         bin_image = self.ocr_image_process(image, path, bin_threshold)
-        result = self.client.basicGeneral(bin_image, kwargs)
+        while True:
+            try:
+                result = self.client.basicGeneral(bin_image, kwargs)
+                break
+            except Exception as e:
+                logging.error(e)
+                self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
+                continue
+
         if ('words_result_num' in result.keys()) and result['words_result_num'] > 0:
             return result
         else:
