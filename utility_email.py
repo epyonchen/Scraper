@@ -7,9 +7,11 @@ import keys
 from utility_commons import *
 import re
 
+
 class Email:
     def __init__(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
-        self.smtpObj = smtplib.SMTP(host, port)
+        self.smtpObj = smtplib.SMTP()
+        self.smtpObj.connect(host, port)
         self.smtpObj.starttls()
         self.smtpObj.ehlo()
         self.smtpObj.login(username, password)
@@ -24,12 +26,17 @@ class Email:
         self.close()
 
     def send(self, subject, content, attachment=None, sender='TDIM.China@ap.jll.com', receivers='benson.chen@ap.jll.com'):
-        if type(receivers) != str:
+        if isinstance(receivers, list):
+            receivers_list = receivers
+            receivers = '; '.join(receivers)
+        elif isinstance(receivers, str):
+            receivers_list = receivers.split(';')
+        else:
             logging.error('Receivers must be string value.')
             return None
+
         try:
-            self.smtpObj.sendmail(sender, receivers, self.build_msg(subject, content, attachment, sender, receivers))
-            self.close()
+            self.smtpObj.sendmail(sender, receivers_list, self.build_msg(subject, content, attachment, sender, receivers))
             logging.info('Email has been sent to {}'.format(receivers))
             return True
         except smtplib.SMTPException as e:
