@@ -15,7 +15,7 @@ class Email:
         self.smtpObj.starttls()
         self.smtpObj.ehlo()
         self.smtpObj.login(username, password)
-        self.msg = MIMEMultipart()
+        self.msg = None
 
     def __enter__(self):
         return self
@@ -47,6 +47,7 @@ class Email:
         self.smtpObj.quit()
 
     def build_msg(self, subject, content, attachment=None, sender='TDIM.China@ap.jll.com', receivers='benson.chen@ap.jll.com'):
+        self.msg = MIMEMultipart()
         self.msg.attach(MIMEText(content, 'plain', 'utf-8'))
         self.msg['Subject'] = Header(subject, 'utf-8')
         self.msg['From'] = sender
@@ -55,6 +56,7 @@ class Email:
             att = MIMEApplication(open(attachment, 'rb').read())
             att.add_header('Content-Disposition', 'attachment', filename=re.compile(r'((?!\\).)*[A-Za-z0-9]((?!\\).)*$').search(attachment).group(0))
             self.msg.attach(att)
+
         return self.msg.as_string()
 
 
