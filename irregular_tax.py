@@ -9,7 +9,6 @@ import keys
 import re
 import pandas as pd
 import db
-import logging
 import pagemanipulate as pm
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -163,7 +162,6 @@ if __name__ == '__main__':
                     "end " \
                     "else 'N' " \
                     "end"
-        subject = ''
         logging.info('---------------   Irregular tax ratio query.   ---------------')
         logging.info('Delete existing records.')
         scrapydb.delete(TABLE_NAME)
@@ -182,11 +180,12 @@ if __name__ == '__main__':
 
             # Send email
             subject = '[PAM Tax Checking] - {} ---发票异常清单--- {}'.format(row['Entity_Name'], TODAY)
-            content = 'Hi All,\r\n请查看附件关于{}的发票异常记录。\r\nThanks.'
+            content = 'Hi All,\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(row['Entity_Name'])
             if not att.empty:
                 att.to_excel(ATTACHMENT_PATH.format(TODAY, row['Entity_Name']), index=False, header=True, sheet_name=row['Entity_Name'])
                 scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=ATTACHMENT_PATH.format(TODAY, row['Entity_Name']))
             else:
                 scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=None)
+
             time.sleep(20)
 
