@@ -179,11 +179,14 @@ if __name__ == '__main__':
             att = scrapydb.select(TABLE_NAME, '*', **{'企业税号': row['Entity_Name'], 'Irregular_Ind': 'Y', '作废标志': '否'})
 
             # Send email
-            subject = '[PAM Tax Checking] - {} ---发票异常清单--- {}'.format(row['Entity_Name'], TODAY)
+            subject = '[PAM Tax Checking] - {} ---发票异常清单    {}---'.format(TODAY, row['Entity_Name'])
             content = 'Hi All,\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(row['Entity_Name'])
+            entity_path = ATTACHMENT_PATH.format(TODAY, row['Entity_Name'])
             if not att.empty:
-                att.to_excel(ATTACHMENT_PATH.format(TODAY, row['Entity_Name']), index=False, header=True, sheet_name=row['Entity_Name'])
-                scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=ATTACHMENT_PATH.format(TODAY, row['Entity_Name']))
+                att.to_excel(entity_path, index=False, header=True, sheet_name=row['Entity_Name'])
+                scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=entity_path)
+                logging.info('Delete attachment file.')
+                os.remove(entity_path)
             else:
                 scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=None)
 
