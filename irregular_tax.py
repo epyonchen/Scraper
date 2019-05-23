@@ -9,7 +9,6 @@ import keys
 import re
 import pandas as pd
 import db
-import logging
 import pagemanipulate as pm
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,12 +17,14 @@ from PIL import Image
 import baidu_api
 import requests
 import time
+import utility_email as em
 from utility_commons import *
 
 
 SCREENSHOT_PATH = PIC_DIR + r'\screen_shot.jpg'
 VCODE_PATH = PIC_DIR + r'\vcode.jpg'
 FILE_PATH = FILE_DIR + r'\Irregular_Tax.xls'
+ATTACHMENT_PATH = FILE_DIR + r'\{}_异常发票清单_{}.xlsx'
 TABLE_NAME = 'Scrapy_Irregular_TAX'
 
 
@@ -109,6 +110,7 @@ class Tax:
             response = self.session.get(query)
             with open(FILE_PATH, 'wb') as writer:
                 writer.write(response.content)
+            logging.info('Download file.')
             return True
         except Exception as e:
             logging.error(e)
@@ -135,6 +137,7 @@ class Tax:
                 break
             else:
                 logging.info('Restart job, Entity {} Server {}'.format(site, server))
+                continue
         tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息', dtype=str)
         tax_df = tax_df[tax_df['序号'] != 'nan']
         tax_df['企业税号'] = site
@@ -145,18 +148,44 @@ class Tax:
 
 if __name__ == '__main__':
 
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapymail:
 
-        access = scrapydb.get_all(TABLE_NAME + '_Access')
+        access = scrapydb.select(TABLE_NAME + '_Access')
+        irregular_ind = "case when left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*印刷品*',N'*计算机配套产品*',N'*劳务*',N'*供电*') and [税率] <> 0.13 " \
+                    "or left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*企业管理服务*')                                  and [税率] <> 0.06 " \
+                    "or left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*燃气*')                                         and [税率] <> 0.09 " \
+                    "then 'Y' " \
+                    "when left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*水冰雪*') " \
+                    "then case when [企业税号] = '91440300791704433Q' and [税率] <> 0.03 then 'Y' " \
+                    "when [企业税号] <>'91440300791704433Q' and [税率] <> 0.09 then 'Y' " \
+                    "else 'N' " \
+                    "end " \
+                    "else 'N' " \
+                    "end"
         logging.info('---------------   Irregular tax ratio query.   ---------------')
         logging.info('Delete existing records.')
         scrapydb.delete(TABLE_NAME)
 
         for index, row in access.iterrows():
-            # if row['Entity_Name'] == '91350100MA346ATX0R':
-                logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
-                result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
-                scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
-                time.sleep(20)
-            # else:
-            #     continue
+            logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
+            result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
+
+            # Upload to database
+            scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
+
+            # Update Irregular_Ind
+            scrapydb.update(TABLE_NAME, 'Irregular_Ind', irregular_ind, False, **{'企业税号': row['Entity_Name']})
+            # Get irregular record
+            att = scrapydb.select(TABLE_NAME, '*', **{'企业税号': row['Entity_Name'], 'Irregular_Ind': 'Y', '作废标志': '否'})
+
+            # Send email
+            subject = '[PAM Tax Checking] - {} ---发票异常清单--- {}'.format(row['Entity_Name'], TODAY)
+            content = 'Hi All,\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(row['Entity_Name'])
+            if not att.empty:
+                att.to_excel(ATTACHMENT_PATH.format(TODAY, row['Entity_Name']), index=False, header=True, sheet_name=row['Entity_Name'])
+                scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=ATTACHMENT_PATH.format(TODAY, row['Entity_Name']))
+            else:
+                scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=None)
+
+            time.sleep(20)
+

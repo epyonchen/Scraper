@@ -117,32 +117,60 @@ class Mssql:
         self.run(drop_temp)
 
     # Select all
-    def get_all(self, table, columns='*'):
+    def select(self, table, columns='*', **kwargs):
         if columns != '*':
             columns = ', '.join(columns)
-        query = 'SELECT {} FROM [{}].[{}]'.format(columns, self.schema, table)
-        result = pd.read_sql(query, self.conn)
-        df = pd.DataFrame(result)
 
-        return df
+        if not self.exist(table):
+            return None
+
+        if not bool(kwargs):
+            condition = ''
+        else:
+            cond = []
+            for key, value in kwargs.items():
+                cond.append('[{}] = N\'{}\''.format(key, value))
+            condition = 'WHERE ' + 'AND '.join(cond)
+        query = 'SELECT {} FROM [{}].[{}] {}'.format(columns, self.schema, table, condition)
+        result = pd.read_sql(query, self.conn)
+        # df = pd.DataFrame(result)
+        return result
 
     # Select one
-    def get_one(self, table, column=None, value=None):
-        condition = None
-        if (column is not None) and (value is not None):
-            condition = 'WHERE {} = N\'{}\''.format(column, value)
-        query = 'SELECT * FROM [{}].[{}] {}'.format(self.schema, table, condition)
-        result = pd.read_sql(query, self.conn)
-        df = pd.DataFrame(result)
-
-        return df
+    # def get_one(self, table):
+    #     if not self.exist(table):
+    #         return None
+    #
+    #     if not bool(kwargs):
+    #         condition = ''
+    #     else:
+    #         cond = []
+    #         for key, value in kwargs.items():
+    #             cond.append('[{}] = N\'{}\''.format(key, value))
+    #         condition = 'WHERE ' + 'AND '.join(cond)
+    #     query = 'SELECT * FROM [{}].[{}] {}'.format(self.schema, table, condition)
+    #     result = pd.read_sql(query, self.conn)
+    #     df = pd.DataFrame(result)
+    #
+    #     return df
 
     # Update one column of value with/without condition
-    def update_one(self, table, set_col, set_value, **kwargs):
-        condition = 'WHERE 1 '
-        for key, value in kwargs:
-            condition = condition + 'AND {} = \'{}\''.format(key, value)
-        query = 'UPDATE [{}].[{}] SET {} = N\'{}\' {}'.format(self.schema, table, set_col, set_value, condition)
+    def update(self, table, set_col, set_value, set_case=True,**kwargs):
+        if not self.exist(table):
+            return None
+
+        if not bool(kwargs):
+            condition = ''
+        else:
+            cond = []
+            for key, value in kwargs.items():
+                cond.append('[{}] = N\'{}\''.format(key, value))
+            condition = 'WHERE ' + 'AND '.join(cond)
+        if set_case:
+            value = 'N\'{}\''.format(set_value)
+        else:
+            value = set_value
+        query = 'UPDATE [{}].[{}] SET {} = {} {}'.format(self.schema, table, set_col, value, condition)
         logging.info('Update record in {}, {}'.format(table, condition))
 
         return self.run(query)
