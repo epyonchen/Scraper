@@ -13,20 +13,20 @@ from utility_commons import *
 from scrapers import TwoStepScraper
 
 
-SITE = 'Lianjia'
-TABLENAME = 'Scrapy_Lianjia'
+SITE = 'Haozu'
+TABLENAME = 'Scrapy_Haozu'
 
 
 class Haozu(TwoStepScraper):
     def __init__(self, city):
         TwoStepScraper.__init__(self, city)
         self.search_base = 'https://www.haozu.com'
-        self.search_suffix = '/{}/zuxiezilou/a1/o{}/'
+        self.search_url = '/{}/zuxiezilou/a1/o{}/'
         # search_url = search_base + '/{}/zuxiezilou/a1/o{}/'.format(city, str(page))
 
     # Get items in one page
     def get_item_list(self, cityname, pagenum):
-        list_link = self.search_suffix.format(cityname, pagenum)
+        list_link = self.search_url.format(cityname, pagenum)
         list_soup = self.search(link=list_link)
         item_list = list_soup.find_all('h1', attrs={'class': 'h1-title'})
         if len(item_list) > 0:
