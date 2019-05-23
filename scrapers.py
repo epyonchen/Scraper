@@ -22,18 +22,22 @@ class TwoStepScraper:
         # search_url = search_base + '/{}/zuxiezilou/a1/o{}/'.format(city, str(page))
 
     # Query one link
-    def search(self, link=None):
+    def search(self, link=None, url=None, encoding=None):
         if link is not None:
             self.search_url = self.search_base + link
-            try:
-                response = requests.get(self.search_url)
-                soup = BeautifulSoup(response.text, 'lxml')
-                return soup
-            except Exception as e:
-                logging.error(e)
-                return None
+        elif url is not None:
+            self.search_url = url
         else:
             logging.error('Search link missing.')
+            return None
+        try:
+            response = requests.get(self.search_url)
+            if encoding is not None:
+                response.encoding = encoding
+            soup = BeautifulSoup(response.text, 'lxml')
+            return soup
+        except Exception as e:
+            logging.error(e)
             return None
 
     # Query one city
@@ -58,7 +62,7 @@ class TwoStepScraper:
             page += 1
 
             # If item_list is empty, stop query
-            if len(item_list) < 1:
+            if not bool(item_list):
                 logging.info('Page {} is empty. Stop this job.'.format(page))
                 logging.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
                 if item_load_list != []:
@@ -75,7 +79,7 @@ class TwoStepScraper:
                         item_load_list += item_detail_list
 
         logging.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
-        if item_load_list != []:
+        if not bool(item_load_list):
             one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)
 
         one_city.df = one_city.format_df()
@@ -96,3 +100,4 @@ class TwoStepScraper:
 
         return self.df
 
+# TODO: Get item detail in separete table
