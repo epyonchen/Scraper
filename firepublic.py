@@ -100,7 +100,8 @@ class FirePublic:
                 to_page = total_page + 1
         colnames = first_soup.find('tr', attrs={'class': 'Grid_Title'}).find_all('th')
 
-        for i in range(from_page, to_page):
+        i = from_page
+        while (from_page <= i) and (i <= to_page):
 
             fp.update_form_data(__EVENTARGUMENT=str(i))
             soup = fp.search()
@@ -114,7 +115,6 @@ class FirePublic:
                 else:
                     fp.renew_session()
                     logging.info('Restart at page {}'.format(i))
-                    i -= 1
                     continue
             # If search is working after renewed, set flag as false again
             if fp.switch is True:
@@ -129,21 +129,20 @@ class FirePublic:
                     if k % len(colnames) == 0:
                         df = df.append(row, ignore_index=True)
                         break
-            # if i > 3:
-            #     break
+            i += 1
             logging.info('Page {} done.'.format(i))
         start_page = from_page
         end_page = i - 1
         if not df.empty:
             df['Source_ID'] = df['文书编号']
-            df['办结时间'] = pd.to_datetime(df['办结时间'])
+            df['办结时间'] = pd.to_datetime(df['办结时间'], format='%Y-%m-%d')
         return df, start_page, end_page
 
 
 if __name__ == '__main__':
 
     with db.Mssql(keys.dbconfig) as scrapydb:
-        df, start, end = FirePublic.run(from_page=1, to_page=1000)  # 3603
+        df, start, end = FirePublic.run(from_page=481, to_page=1000)  # 3603
         if not df.empty:
             logging.info('Start from page {}, stop at page {}.'.format(start, end))
             # df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}_{}.xlsx'.format(site, date, start, end), index=False,
