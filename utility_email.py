@@ -35,13 +35,33 @@ class Email:
             logging.error('Receivers must be string value.')
             return None
 
+        if not self.check_connection():
+            self.reconnect()
+
         try:
             self.smtpObj.sendmail(sender, receivers_list, self.build_msg(subject, content, attachment, sender, receivers))
             logging.info('Email has been sent to {}'.format(receivers))
             return True
-        except smtplib.SMTPException as e:
+        except Exception as e:
             logging.error(e)
             return None
+
+    def reconnect(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
+        logging.info('Reconnect mailing server')
+        self.close()
+        self.smtpObj = smtplib.SMTP()
+        self.smtpObj.connect(host, port)
+        self.smtpObj.starttls()
+        self.smtpObj.ehlo()
+        self.smtpObj.login(username, password)
+
+    def check_connection(self):
+        try:
+            status = self.smtpObj.noop()[0]
+        except Exception as e:
+            logging.error(e)
+            status = -1
+        return status == 250
 
     def close(self):
         self.smtpObj.quit()
