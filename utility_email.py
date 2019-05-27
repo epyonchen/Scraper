@@ -48,7 +48,6 @@ class Email:
 
     def reconnect(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
         logging.info('Reconnect mailing server')
-        self.close()
         self.smtpObj = smtplib.SMTP()
         self.smtpObj.connect(host, port)
         self.smtpObj.starttls()
