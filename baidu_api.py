@@ -33,14 +33,14 @@ class Baidu:
 
     def ocr_api_call(self, image, path, bin_threshold=100, **kwargs):
         bin_image = self.ocr_image_process(image, path, bin_threshold)
-        while True:
-            try:
-                result = self.client.basicGeneral(bin_image, kwargs)
-                break
-            except Exception as e:
-                logging.error(e)
-                self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
-                continue
+        # while True:
+        #     try:
+        result = self.client.basicGeneral(bin_image, kwargs)
+            #     break
+            # except Exception as e:
+            #     logging.error(e)
+            #     self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
+            #     continue
 
         if ('words_result_num' in result.keys()) and result['words_result_num'] > 0:
             return result
