@@ -148,7 +148,7 @@ class Tax:
 
 if __name__ == '__main__':
 
-    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapymail:
+    with db.Mssql(keys.dbconfig) as scrapydb:
 
         access = scrapydb.select(TABLE_NAME + '_Access')
         irregular_ind = "case when left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*印刷品*',N'*计算机配套产品*',N'*劳务*',N'*供电*') and [税率] <> 0.13 " \
@@ -173,14 +173,16 @@ if __name__ == '__main__':
             # Upload to database
             scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
 
-            # Update Irregular_Ind
-            scrapydb.update(TABLE_NAME, 'Irregular_Ind', irregular_ind, False, **{'企业税号': row['Entity_Name']})
+            # Update Irregular_Ind by executing stored procedure
+            # scrapydb.update(TABLE_NAME, 'Irregular_Ind', irregular_ind, False, **{'企业税号': row['Entity_Name']})
+            scrapydb.run('EXEC CHN.Irregular_Tax_Refresh')
             # Get irregular record
             att = scrapydb.select(TABLE_NAME, '*', **{'企业税号': row['Entity_Name'], 'Irregular_Ind': 'Y', '作废标志': '否'})
 
             # Send email
+            scrapymail = em.Email()
             subject = '[PAM Tax Checking] - {} ---发票异常清单    {}---'.format(TODAY, row['Entity_Name'])
-            content = 'Hi All,\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(row['Entity_Name'])
+            content = 'Hi All,\r\n      请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(row['Entity_Name'])
             entity_path = ATTACHMENT_PATH.format(TODAY, row['Entity_Name'])
             if not att.empty:
                 att.to_excel(entity_path, index=False, header=True, sheet_name=row['Entity_Name'])
@@ -189,6 +191,6 @@ if __name__ == '__main__':
                 os.remove(entity_path)
             else:
                 scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=None)
-
+            scrapymail.close()
             time.sleep(20)
 
