@@ -24,14 +24,14 @@ class TwoStepScraper:
     # Query one link
     def search(self, link=None, url=None, encoding=None):
         if link is not None:
-            self.search_url = self.search_base + link
+            query = self.search_base + link
         elif url is not None:
-            self.search_url = url
+            query = url
         else:
             logging.error('Search link missing.')
             return None
         try:
-            response = requests.get(self.search_url)
+            response = requests.get(query)
             if encoding is not None:
                 response.encoding = encoding
             soup = BeautifulSoup(response.text, 'lxml')
