@@ -18,10 +18,11 @@ class Mssql:
     def __init__(self, config):
         self.server = config['server']
         self.database = config['database']
-        self.user = config['user']
-        self.password = config['password']
         self.schema = config['schema']
-        self.conn = pymssql.connect(self.server, self.user, self.password, self.database)
+        if ('user' in config.keys()) and ('password' in config.keys()):
+            self.conn = pymssql.connect(server=self.server, database=self.database, user=config['user'], password=config['password'])
+        else:
+            self.conn = pymssql.connect(server=self.server, database=self.database)
         self.cur = self.conn.cursor()
 
     def __enter__(self):
@@ -44,14 +45,6 @@ class Mssql:
     # insert df into table
     def upload(self, df, table, new_id=True, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
 
-        # # Get start and end info
-        # if 'start' in logs.keys():
-        #     start = str(logs['start'])
-        #     del logs['start']
-        # if 'end' in logs.keys():
-        #     end = str(logs['end'])
-        #     del logs['end']
-
         columns = list(df)
         columns = ' [' + '], ['.join(columns) + ']'
         value_default = '({})'
@@ -73,13 +66,13 @@ class Mssql:
         values = None
         count = 0
         total = 0
+
         if not self.exist('#Temp_{}'.format(table)):
             self.create_table('#Temp_{}'.format(table), columns)
         # Built insert query
         for index, row in df.iterrows():
             # Replace ' as empty
             row = map(lambda x: str(x).replace('\'', ''), row)
-
             value = 'N\'' + '\',N\''.join(row).replace('nan', '') + '\''
             value = value_default.format(value)
 
@@ -136,23 +129,14 @@ class Mssql:
         # df = pd.DataFrame(result)
         return result
 
-    # Select one
-    # def get_one(self, table):
-    #     if not self.exist(table):
-    #         return None
-    #
-    #     if not bool(kwargs):
-    #         condition = ''
-    #     else:
-    #         cond = []
-    #         for key, value in kwargs.items():
-    #             cond.append('[{}] = N\'{}\''.format(key, value))
-    #         condition = 'WHERE ' + 'AND '.join(cond)
-    #     query = 'SELECT * FROM [{}].[{}] {}'.format(self.schema, table, condition)
-    #     result = pd.read_sql(query, self.conn)
-    #     df = pd.DataFrame(result)
-    #
-    #     return df
+    # Call stored procedure
+    def call_sp(self, sp, *inputs):
+        try:
+            self.cur.callproc(sp, inputs)
+            print(self.cur)
+            logging.info('Execute store procedure: {}'.format(sp))
+        except Exception as e:
+            logging.error(e)
 
     # Update one column of value with/without condition
     def update(self, table, set_col, set_value, set_case=True,**kwargs):
@@ -241,5 +225,8 @@ class Mssql:
 
 if __name__ == '__main__':
     import keys
-    d = Mssql(keys.dbconfig)
-    d.log('1', '2', a='1')
+
+    d = Mssql(keys.dbconfig_win)
+    print('exist temp[', d.exist('{}'.format('Scrapy_Irregular_TAX')))
+    d.run('EXEC CHN.Irregular_Tax_Refresh')
+    d.close()
