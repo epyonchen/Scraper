@@ -63,7 +63,7 @@ class TwoStepScraper:
 
             # If item_list is empty, stop query
             if not bool(item_list):
-                logging.info('Page {} is empty. Stop this job.'.format(page))
+                logging.info('Page {} is empty. Stop this job.'.format(page - 1))
                 logging.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
                 if item_load_list != []:
                     one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)
@@ -83,7 +83,7 @@ class TwoStepScraper:
             one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)
 
         one_city.df = one_city.format_df()
-        return one_city.df, from_page, page - 1
+        return one_city.df, str(from_page), str(page - 1)
 
     # Get item list in one page for one city
     def get_item_list(self, cityname, pagenum):
