@@ -115,33 +115,60 @@ class Mssql:
             columns = ', '.join(columns)
 
         if not self.exist(table):
-            return None
+            return False
 
+        # Condition build up
         if not bool(kwargs):
             condition = ''
         else:
             cond = []
+            if 'customized' in kwargs.keys():
+                customized = kwargs['customized']
+                cust_cond = []
+                for key, value in customized.items():
+                    cust_cond.append('[{}] {}'.format(key, value))
+                cust_condition = 'AND '.join(cust_cond)
+                del kwargs['customized']
             for key, value in kwargs.items():
                 cond.append('[{}] = N\'{}\''.format(key, value))
-            condition = 'WHERE ' + 'AND '.join(cond)
+            condition = 'WHERE ' + ' AND '.join(cond) + (' AND ' + cust_condition) if bool(cust_cond) else ''
+
         query = 'SELECT {} FROM [{}].[{}] {}'.format(columns, self.schema, table, condition)
         result = pd.read_sql(query, self.conn)
         # df = pd.DataFrame(result)
         return result
 
     # Call stored procedure
-    def call_sp(self, sp, *inputs):
+    def call_sp(self, sp, output=False, **kwargs):
         try:
-            self.cur.callproc(sp, inputs)
-            print(self.cur)
+            input = ''
+            if bool(kwargs):
+                input = []
+                for key, value in kwargs.items():
+                    input.append('@{} = N\'{}\''.format(key, value))
+                input = ', '.join(input)
+            query = "EXEC {} {}".format(sp, input)
+
+            self.cur.execute(query)
             logging.info('Execute store procedure: {}'.format(sp))
+            # self.conn.commit()
+            if output:
+                col_names = [i[0] for i in self.cur.description]
+                att = []
+                for row in self.cur:
+                    att.append(row)
+                att = pd.DataFrame(att, columns=col_names)
+                return att
+            else:
+                return True
         except Exception as e:
             logging.error(e)
+            return False
 
     # Update one column of value with/without condition
-    def update(self, table, set_col, set_value, set_case=True,**kwargs):
+    def update(self, table, set_col, set_value, set_case=True, **kwargs):
         if not self.exist(table):
-            return None
+            return False
 
         if not bool(kwargs):
             condition = ''
@@ -189,7 +216,7 @@ class Mssql:
     # Delete a load
     def delete(self, table, **kwargs):
         if not self.exist(table):
-            return None
+            return False
 
         if not bool(kwargs):
             condition = ''

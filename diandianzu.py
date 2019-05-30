@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
         for city in cities:
 
-            one_city_df, start, end = Diandianzu.run(city=city)  #, from_page=1, to_page=1
+            one_city_df, start, end = Diandianzu.run(city=city, from_page=1, to_page=1)  #, from_page=1, to_page=1
             logging.info('Start from page {}, stop at page {}.'.format(start, end))
 
             # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
