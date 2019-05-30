@@ -148,7 +148,7 @@ class Tax:
         return tax_df
 
 
-def __send_email(entity, receiver, attachment):
+def _send_email(entity, receiver, attachment):
     # Send email
     scrapymail = em.Email()
 
@@ -171,17 +171,6 @@ if __name__ == '__main__':
     with db.Mssql(keys.dbconfig) as scrapydb:
 
         access = scrapydb.select(TABLE_NAME + '_Access')
-        irregular_ind = "case when left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*印刷品*',N'*计算机配套产品*',N'*劳务*',N'*供电*') and [税率] <> 0.13 " \
-                    "or left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*企业管理服务*')                                  and [税率] <> 0.06 " \
-                    "or left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*燃气*')                                         and [税率] <> 0.09 " \
-                    "then 'Y' " \
-                    "when left([商品名称],charindex('*',[商品名称],charindex('*',[商品名称])+1)) in (N'*水冰雪*') " \
-                    "then case when [企业税号] = '91440300791704433Q' and [税率] <> 0.03 then 'Y' " \
-                    "when [企业税号] <>'91440300791704433Q' and [税率] <> 0.09 then 'Y' " \
-                    "else 'N' " \
-                    "end " \
-                    "else 'N' " \
-                    "end"
         logging.info('---------------   Irregular tax ratio query.   ---------------')
         logging.info('Delete existing records.')
         scrapydb.delete(TABLE_NAME)
@@ -189,16 +178,15 @@ if __name__ == '__main__':
         for index, row in access.iterrows():
             logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
             result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
-            #
-            # # Upload to database
-            scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
 
+            # Upload to database
+            scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
             # Update Irregular_Ind by executing stored procedure
-            scrapydb.update(TABLE_NAME, 'Irregular_Ind', irregular_ind, False, **{'企业税号': row['Entity_Name']})
             scrapydb.call_sp('CHN.Irregular_Tax_Refresh')
             # Get irregular record
             att = scrapydb.call_sp('CHN.Irregular_Tax_ETL', True, Entity_Name=row['Entity_Name'])
+
             numeric_col = ['金额', '单价', '税率', '税额']
             att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
-            __send_email(row['Entity_Name'], row['Email_List'], att)
+            _send_email(row['Entity_Name'], row['Email_List'], att)
             time.sleep(20)
