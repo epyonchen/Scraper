@@ -7,9 +7,6 @@ Created on Thur April 18th 2019
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import datetime
-import db
-import keys
 import logging
 
 
@@ -79,9 +76,9 @@ class TwoStepScraper:
                         item_load_list += item_detail_list
 
         logging.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
-        if not bool(item_load_list):
-            one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)
 
+        if bool(item_load_list):
+            one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)
         one_city.df = one_city.format_df()
         return one_city.df, str(from_page), str(page - 1)
 

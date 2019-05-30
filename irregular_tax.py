@@ -126,6 +126,8 @@ class Tax:
         self.cookies = self.web.get_requests_cookies()
         self.session.cookies.update(self.cookies)
 
+
+
     @classmethod
     def run(cls, site, server, link, username, password):
         while True:
@@ -145,6 +147,24 @@ class Tax:
 
         return tax_df
 
+
+def __send_email(entity, receiver, attachment):
+    # Send email
+    scrapymail = em.Email()
+
+    if not attachment.empty:
+        entity_path = ATTACHMENT_PATH.format(TODAY, entity)
+        subject = '[PAM Tax Checking] - {} 发票异常清单 {}'.format(TODAY, entity)
+        content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
+        attachment.to_excel(entity_path, index=False, header=True, sheet_name=entity)
+        scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=entity_path)
+        logging.info('Delete attachment file.')
+        os.remove(entity_path)
+    else:
+        subject = '[PAM Tax Checking] - {} 发票无异常 {}'.format(TODAY, entity)
+        content = 'Hi All,\r\n\r\n{}的发票无记录。\r\n\r\nThanks.'.format(entity)
+        scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
+    scrapymail.close()
 
 if __name__ == '__main__':
 
@@ -169,28 +189,16 @@ if __name__ == '__main__':
         for index, row in access.iterrows():
             logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
             result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
-
-            # Upload to database
+            #
+            # # Upload to database
             scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
 
             # Update Irregular_Ind by executing stored procedure
-            # scrapydb.update(TABLE_NAME, 'Irregular_Ind', irregular_ind, False, **{'企业税号': row['Entity_Name']})
-            scrapydb.run('EXEC CHN.Irregular_Tax_Refresh')
+            scrapydb.update(TABLE_NAME, 'Irregular_Ind', irregular_ind, False, **{'企业税号': row['Entity_Name']})
+            scrapydb.call_sp('CHN.Irregular_Tax_Refresh')
             # Get irregular record
-            att = scrapydb.select(TABLE_NAME, '*', **{'企业税号': row['Entity_Name'], 'Irregular_Ind': 'Y', '作废标志': '否'})
-
-            # Send email
-            scrapymail = em.Email()
-            subject = '[PAM Tax Checking] - {} ---发票异常清单    {}---'.format(TODAY, row['Entity_Name'])
-            content = 'Hi All,\r\n      请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(row['Entity_Name'])
-            entity_path = ATTACHMENT_PATH.format(TODAY, row['Entity_Name'])
-            if not att.empty:
-                att.to_excel(entity_path, index=False, header=True, sheet_name=row['Entity_Name'])
-                scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=entity_path)
-                logging.info('Delete attachment file.')
-                os.remove(entity_path)
-            else:
-                scrapymail.send(subject=subject, content=content, receivers=row['Email_List'], attachment=None)
-            scrapymail.close()
+            att = scrapydb.call_sp('CHN.Irregular_Tax_ETL', True, Entity_Name=row['Entity_Name'])
+            numeric_col = ['金额', '单价', '税率', '税额']
+            att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
+            __send_email(row['Entity_Name'], row['Email_List'], att)
             time.sleep(20)
-

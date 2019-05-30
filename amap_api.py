@@ -10,9 +10,8 @@ import keys
 import requests
 import time
 import random
-import datetime
 import gecodeconvert as gc
-
+from utility_commons import *
 
 class Amap:
 
@@ -31,7 +30,7 @@ class Amap:
         response = requests.get(query).json()
         time.sleep(random.randint(1, 2))
 
-        if ('status' not in response.keys()) or (response['status'] != '1') or (float(response['count']) < 1):
+        if ('status' not in response.keys()) or (response['status'] != '1'):
             return None
         else:
             one_call = pd.DataFrame()
@@ -49,14 +48,14 @@ class Amap:
 
     def get_api_call(self, api_response):
         one_call = pd.DataFrame()
-        if ('status' not in api_response.keys()) or (api_response['status'] != '1') or (float(api_response['count']) < 1):
+
+        if api_response is None or ('status' not in api_response.keys()) or (api_response['status'] != '1'):
             return None
         else:
             for store in api_response['pois']:
                 mapit = self.geocode_convert(float(store['location'].split(',')[0]), float(store['location'].split(',')[1]))
                 store['MapITlat'] = mapit[1]
                 store['MapITlon'] = mapit[0]
-
                 one_call = one_call.append(store, ignore_index=True)
 
             return one_call
@@ -68,10 +67,9 @@ class Amap:
 
 
 if __name__ == '__main__':
-    site = 'FirePublic'
+    site = 'School'
     date = str(datetime.date.today())
-    property_list = pd.read_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\FirePublic_2019-03-24.xlsx', sheet_name='FirePublic', sort=False)
-    # property_list = pd.read_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\LawFirm_gz_2019-03-01_0.xlsx', sheet_name='Sheet1',  sort=False)
+    property_list = pd.read_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\国际学校.xlsx', sheet_name='高中', sort=False)
 
     # keywords = ['鹿角巷', 'gaga鲜语', '安缇安蝴蝶饼', '卅卅红油串串', '乐刻健身', '披萨工坊', '瑞幸咖啡', 'luckin coffee', '沃尔玛', '美吉姆', '星巴克', 'Starbucks', '斯凯奇', '全家便利店', 'FamilyMart',
     #             '天虹百货', '盒马鲜生', 'FILA', '阿迪达斯', 'ADIDAS', '喜茶', 'Teenie Weenie', '古德菲力', '7fresh', 'Innisfree', 'Pandora', '豪客来', 'KOI', '7-11', '7-ELEVEN', '大家乐', '乐凯撒', '马克华菲',
@@ -97,13 +95,14 @@ if __name__ == '__main__':
     amp = Amap()
     for index, property in property_list.iterrows():
 
-        keyword = str(property['地址'])
-        response = amp.search_location_api_call(keys.amap, keywords=keyword, city=cities[0], citylimit=True, types='120000', offset='1', output='JSON') #  building='B0FFH11BOI',
-        one_call = amp.get_api_call(response)
+        keyword = str(property['学校名称'])
+        one_call = amp.search_location_api_call(keys.amap[0], keywords=keyword, city=cities[0], citylimit=True,  offset='1', output='JSON') #  building='B0FFH11BOI',types='190100',
+        # print(response)
+        # one_call = amp.get_api_call(response)
         if one_call is None:
             one_call = dict()
 
-        one_call['Source_ID'] = property['Source_ID']
+        # one_call['Source_ID'] = property['Source_ID']
 
         df = df.append(one_call, ignore_index=True)
 
@@ -111,8 +110,8 @@ if __name__ == '__main__':
         # if count >= 10:
         #     break
 
-    df['Timestamp'] = date
+    df['Timestamp'] = TIMESTAMP
     # df = df.drop_duplicates(subset=['id'], keep='first')
-    df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_Amap_{}.xlsx'.format(site, date), index=False, header=True, columns=list(df), sheet_name='Amap Api')
+    df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_Amap_{}.xlsx'.format(site, TODAY), index=False, header=True, columns=list(df), sheet_name='Amap Api')
 
 
