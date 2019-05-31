@@ -10,6 +10,8 @@ import pandas as pd
 import logging
 
 
+logger = logging.getLogger('scrapy')
+
 class TwoStepScraper:
     def __init__(self, city):
         self.search_base = None
@@ -25,7 +27,7 @@ class TwoStepScraper:
         elif url is not None:
             query = url
         else:
-            logging.error('Search link missing.')
+            logger.error('Search link missing.')
             return None
         try:
             response = requests.get(query)
@@ -34,7 +36,7 @@ class TwoStepScraper:
             soup = BeautifulSoup(response.text, 'lxml')
             return soup
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None
 
     # Query one city
@@ -45,14 +47,14 @@ class TwoStepScraper:
         item_load_list = []
 
         if city is None:
-            logging.error('City is missing.')
+            logger.error('City is missing.')
             return None, from_page, page
 
-        logging.info('Start querying {}.'.format(city))
+        logger.info('Start querying {}.'.format(city))
 
 
         while (to_page is None) or (page <= to_page):
-            logging.info('Query City: {}    Page: {}.'.format(city, page))
+            logger.info('Query City: {}    Page: {}.'.format(city, page))
 
             # Get items in one page
             item_list = one_city.get_item_list(city, page)
@@ -60,8 +62,8 @@ class TwoStepScraper:
 
             # If item_list is empty, stop query
             if not bool(item_list):
-                logging.info('Page {} is empty. Stop this job.'.format(page - 1))
-                logging.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
+                logger.info('Page {} is empty. Stop this job.'.format(page - 1))
+                logger.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
                 if item_load_list != []:
                     one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)
                 return one_city.df, from_page, page - 1
@@ -75,7 +77,7 @@ class TwoStepScraper:
                     else:
                         item_load_list += item_detail_list
 
-        logging.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
+        logger.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
 
         if bool(item_load_list):
             one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)

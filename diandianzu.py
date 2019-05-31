@@ -10,11 +10,15 @@ import time
 import re
 import db
 import keys
+import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
 
 SITE = 'Diandianzu'
 TABLENAME = 'Scrapy_Diandianzu'
+LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+
+logger = getLogger(__name__)
 
 
 class Diandianzu(TwoStepScraper):
@@ -46,15 +50,15 @@ class Diandianzu(TwoStepScraper):
         try:
             item_detail_title = one_item_soup.find('div', attrs={'class': 'ftitle clearfix'}).find_all('div')
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None
         if not item_detail_title:
             return None
         try:
             detail_list = one_item_soup.find('div', attrs={'class': 'fbody'}).find_all('div', attrs={'class': re.compile('fitem .*')})
-            logging.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
+            logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None
 
         # Go through detail list of one item
@@ -86,13 +90,14 @@ class Diandianzu(TwoStepScraper):
 if __name__ == '__main__':
 
     cities = ['gz', 'sz', 'sh', 'bj', 'cd']
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
 
         for city in cities:
 
             one_city_df, start, end = Diandianzu.run(city=city, from_page=1, to_page=1)  #, from_page=1, to_page=1
-            logging.info('Start from page {}, stop at page {}.'.format(start, end))
+            logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
             scrapydb.upload(one_city_df, 'Scrapy_{}'.format(SITE), start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
+    scrapyemail.send(SITE, 'Done', LOG_PATH)
