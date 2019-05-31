@@ -9,12 +9,17 @@ import time
 import re
 import db
 import keys
+import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
 
 
 SITE = 'Haozu'
 TABLENAME = 'Scrapy_Haozu'
+LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+
+logger = getLogger(__name__)
+
 
 
 class Haozu(TwoStepScraper):
@@ -35,7 +40,7 @@ class Haozu(TwoStepScraper):
 
     # Get detail of one item
     def get_item_detail(self, item):
-        time.sleep(random.randint(0, 1) / 5.0)
+        time.sleep(random.randint(0, 1))
 
         item_link = item.a['href']
         item_id = str(re.compile(r'\d+').search(item_link).group(0))
@@ -45,9 +50,9 @@ class Haozu(TwoStepScraper):
         one_item_soup = self.search(link=item_link)
         try:
             detail_list = one_item_soup.find('div', attrs={'id': 'normal-house-div'}).find_all('tr', attrs={'data-role': 'item'})
-            logging.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
+            logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None
 
         # Go through detail list of one item
@@ -89,13 +94,11 @@ class Haozu(TwoStepScraper):
 if __name__ == '__main__':
 
     cities = ['bj', 'sh', 'cd', 'gz', 'sz']  #
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
         for city in cities:
 
-            one_city_df, start, end = Haozu.run(city=city)  #, from_page=1, to_page=1
-            logging.info('Start from page {}, stop at page {}.'.format(start, end))
-
-            # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(site, city, date), sheet_name='{} {}'.format(site, city), index=False)
-
+            one_city_df, start, end = Haozu.run(city=city, from_page=1, to_page=1)  #, from_page=1, to_page=1
+            logger.info('Start from page {}, stop at page {}.'.format(start, end))
             scrapydb.upload(one_city_df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-    # scrapydb.close()
+
+    scrapyemail.send(SITE, 'Done', LOG_PATH)

@@ -10,7 +10,7 @@ import pandas as pd
 import logging
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+logger = logging.getLogger('scrapy')
 
 
 class Mssql:
@@ -26,20 +26,20 @@ class Mssql:
         self.cur = self.conn.cursor()
 
     def __enter__(self):
-        logging.info('Connect database: {}'.format(self.database))
+        logger.info('Connect database: {}'.format(self.database))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logging.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
-        logging.info('Disconnect database: {}'.format(self.database))
+            logger.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
+        logger.info('Disconnect database: {}'.format(self.database))
         self.close()
 
     # Create table
     def create_table(self, table, columns):
         columns_init = columns.replace(',', ' NVARCHAR(255),') + ' NVARCHAR(255)'
         query = 'CREATE TABLE {} ({})'.format(table, columns_init)
-        logging.info('Creat table {}'.format(table))
+        logger.info('Creat table {}'.format(table))
         return self.run(query)
 
     # insert df into table
@@ -58,7 +58,7 @@ class Mssql:
 
         # If table does not exist, create one
         if not self.exist(table):
-            logging.info('Table [{}].[{}] does not exist'.format(self.schema, table))
+            logger.info('Table [{}].[{}] does not exist'.format(self.schema, table))
             if not self.create_table('[{}].[{}]'.format(self.schema, table), columns):
                 return False
 
@@ -88,7 +88,7 @@ class Mssql:
                 # query = 'INSERT INTO [{}].[{}] ({}) VALUES {}'.format(self.schema, table, columns, values)
 
                 # If error, delete all records related this load
-                logging.info('Insert {} rows'.format(total))
+                logger.info('Insert {} rows'.format(total))
                 if not self.run(temp_query):
 
                     return False
@@ -105,7 +105,7 @@ class Mssql:
         drop_temp = 'DROP TABLE #Temp_{}'.format(table)
         # query = 'SELECT {} FROM #Temp_{} WHERE Office_ID NOT IN (SELECT DISTINCT Office_ID FROM [{}].[{}])'.format(columns, table, self.schema, table)
         if self.run(insert_query):
-            if start < end:
+            if start <= end:
                 self.log(table, start, end, **logs)
         self.run(drop_temp)
 
@@ -150,7 +150,7 @@ class Mssql:
             query = "EXEC {} {}".format(sp, input)
 
             self.cur.execute(query)
-            logging.info('Execute store procedure: {}'.format(sp))
+            logger.info('Execute store procedure: {}'.format(sp))
             # self.conn.commit()
             if output:
                 col_names = [i[0] for i in self.cur.description]
@@ -162,7 +162,7 @@ class Mssql:
             else:
                 return True
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return False
 
     # Update one column of value with/without condition
@@ -182,7 +182,7 @@ class Mssql:
         else:
             value = set_value
         query = 'UPDATE [{}].[{}] SET {} = {} {}'.format(self.schema, table, set_col, value, condition)
-        logging.info('Update record in {}, {}'.format(table, condition))
+        logger.info('Update record in {}, {}'.format(table, condition))
 
         return self.run(query)
 
@@ -203,7 +203,7 @@ class Mssql:
             self.conn.commit()
             return True
         except pymssql.Error as e:
-            logging.error('SQL Error: {}'.format(e))
+            logger.error('SQL Error: {}'.format(e))
             print(query)
             self.conn.rollback()
             # delete = 'DELETE * FROM {} WHERE SOURCE_NAME = {}'
@@ -226,7 +226,7 @@ class Mssql:
                 cond.append('[{}] = N\'{}\''.format(key, value))
             condition = 'WHERE ' + 'AND '.join(cond)
         query = 'DELETE FROM [{}].[{}] {}'.format(self.schema, table, condition)
-        logging.info('Delete record in {}, {}'.format(table, condition))
+        logger.info('Delete record in {}, {}'.format(table, condition))
         self.run(query)
 
     # Close connection
@@ -247,7 +247,7 @@ class Mssql:
         query = 'INSERT INTO [{}].[{}] ({}) VALUES {}'.format(self.schema, log_table, log_columns, log_values)
 
         if self.run(query):
-            logging.info('Log current job.')
+            logger.info('Log current job.')
 
 
 if __name__ == '__main__':

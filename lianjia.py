@@ -10,12 +10,16 @@ import time
 import re
 import db
 import keys
+import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
 
 
 SITE = 'Lianjia'
 TABLENAME = 'Scrapy_Lianjia'
+LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+
+logger = getLogger(__name__)
 
 
 class Lianjia(TwoStepScraper):
@@ -47,9 +51,9 @@ class Lianjia(TwoStepScraper):
 
         try:
             detail_list = one_item_soup.find_all('a', attrs={'class': 'result__li'})
-            logging.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
+            logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None
 
         # Go through detail list of one item
@@ -69,7 +73,7 @@ class Lianjia(TwoStepScraper):
                     item_detail[d.text.split('：')[0]] = d.text.split('：')[1]
                 item_detail_list.append(item_detail)
             except Exception as e:
-                logging.error(e)
+                logger.error(e)
                 continue
         return item_detail_list
 
@@ -77,13 +81,11 @@ class Lianjia(TwoStepScraper):
 if __name__ == '__main__':
 
     cities = ['gz', 'sz', 'sh', 'bj', 'cd'] #
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
 
         for city in cities:
             one_city_df, start, end = Lianjia.run(city=city)  # , from_page=1, to_page=1
-            logging.info('Start from page {}, stop at page {}.'.format(start, end))
-
-            # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(site, city, date), sheet_name='{} {}'.format(site, city), index=False)
+            logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             scrapydb.upload(one_city_df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-    # scrapydb.close()
+    scrapyemail.send(SITE, 'Done', LOG_PATH)

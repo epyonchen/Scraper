@@ -12,10 +12,14 @@ from bs4 import BeautifulSoup
 import keys
 import db
 import pagemanipulate as pm
+import utility_email as em
 from utility_commons import *
 
 SITE = 'FirePublic'
 TABLENAME = 'Scrapy_FirePublic'
+LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+
+logger = getLogger(__name__)
 
 
 class FirePublic:
@@ -68,7 +72,7 @@ class FirePublic:
 
     # Renew session with form data and cookies
     def renew_session(self):
-        logging.info('Renew cookies')
+        logger.info('Renew cookies')
         page = pm.Page(self.searchbase)
         renew_soup = BeautifulSoup(page.driver.page_source, 'lxml')
         renew_form = renew_soup.find_all('input', attrs={'id': list(self.form_data.keys())})
@@ -94,7 +98,7 @@ class FirePublic:
         reg_num = re.compile(r'\d+')
         total_page = reg_num.findall(first_soup.find('div', attrs={'id': 'ctl00_MainContent_AspNetPager1'}).find('td').text)
         if total_page:
-            logging.info('Total {} records, {} pages.'.format(total_page[0], total_page[1]))
+            logger.info('Total {} records, {} pages.'.format(total_page[0], total_page[1]))
             total_page = int(total_page[1])
             if to_page < 1:
                 to_page = total_page + 1
@@ -110,11 +114,11 @@ class FirePublic:
             # If error, renew form data. If form data has already renewed, stop search
             except Exception as e:
                 if fp.switch is True:
-                    logging.info('Stop run due to: {}'.format(e))
+                    logger.info('Stop run due to: {}'.format(e))
                     break
                 else:
                     fp.renew_session()
-                    logging.info('Restart at page {}'.format(i))
+                    logger.info('Restart at page {}'.format(i))
                     continue
             # If search is working after renewed, set flag as false again
             if fp.switch is True:
@@ -130,7 +134,7 @@ class FirePublic:
                         df = df.append(row, ignore_index=True)
                         break
             i += 1
-            logging.info('Page {} done.'.format(i))
+            logger.info('Page {} done.'.format(i))
         start_page = from_page
         end_page = i - 1
         if not df.empty:
@@ -141,12 +145,13 @@ class FirePublic:
 
 if __name__ == '__main__':
 
-    with db.Mssql(keys.dbconfig) as scrapydb:
-        df, start, end = FirePublic.run(from_page=481, to_page=1000)  # 3603
+    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
+        df, start, end = FirePublic.run(from_page=3700, to_page=4000)  # 3603
         if not df.empty:
-            logging.info('Start from page {}, stop at page {}.'.format(start, end))
+            logger.info('Start from page {}, stop at page {}.'.format(start, end))
             # df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}_{}.xlsx'.format(site, date, start, end), index=False,
             #             header=True, sheet_name=site)
             scrapydb.upload(df, TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
         else:
-            logging.info('Fail this run at page {}.'.format(end))
+            logger.info('Fail this run at page {}.'.format(end))
+    scrapyemail.send(SITE, 'Done', LOG_PATH)

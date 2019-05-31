@@ -8,6 +8,7 @@ import datetime
 from datetime import date
 from dateutil.relativedelta import relativedelta
 import logging
+import logging.config
 from pytz import timezone
 
 # path
@@ -15,6 +16,7 @@ SCRIPT_DI = '1'
 SCRIPT_DIR = os.path.dirname(__file__)
 PIC_DIR = SCRIPT_DIR + r'\Vcode'
 FILE_DIR = SCRIPT_DIR + r'\Result'
+LOG_DIR = SCRIPT_DIR + r'\Log'
 
 # time
 TIMESTAMP = str(datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong')))
@@ -26,7 +28,52 @@ PRE3MONTH = (date.today() - relativedelta(months=4)).strftime('%Y-%m-%d')
 MAIL_HOST = 'outlook.office365.com'
 MAIL_PORT = '587'
 
-# TODO: logging module
-class Log:
-    def __init__(self):
-        return logging.getLogger('')
+# global log variable
+__log = None
+
+
+# Return logger, display INFO level logs in console and record ERROR level logs in file
+def getLogger(site):
+        # Logging config
+
+        LOGGING_CONFIG = {
+            'version': 1,  # required
+            'disable_existing_loggers': True,  # this config overrides all other loggers
+            'formatters': {
+                'brief': {
+                    'format': '%(asctime)s\t%(levelname)s: %(message)s'
+                },
+                'precise': {
+                    'format': '%(asctime)s\t%(levelname)s - %(filename)s[line:%(lineno)s] - %(funcName)s(): %(message)s'
+                },
+            },
+            'handlers': {
+                'console': {
+                    'level': 'DEBUG',
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'brief',
+                },
+                'file': {
+                    'level': 'ERROR',
+                    'class': 'logging.FileHandler',
+                    'formatter': 'precise',
+                    'filename': LOG_DIR + '\\' + site + '.log',
+                    'mode': 'w'
+                },
+            },
+            'loggers': {
+                'scrapy': {
+                    'level': 'INFO',
+                    'handlers': ['console', 'file'],
+                    'propagate': False
+                }
+            }
+        }
+
+        global __log
+        if __log is None:
+            logging.config.dictConfig(LOGGING_CONFIG)
+            return logging.getLogger('scrapy')
+        return __log
+
+

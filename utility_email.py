@@ -7,6 +7,7 @@ import keys
 from utility_commons import *
 import re
 
+logger = logging.getLogger('scrapy')
 
 class Email:
     def __init__(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
@@ -22,7 +23,7 @@ class Email:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logging.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
+            logger.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         self.close()
 
     def send(self, subject, content, attachment=None, sender='TDIM.China@ap.jll.com', receivers='benson.chen@ap.jll.com'):
@@ -32,7 +33,7 @@ class Email:
         elif isinstance(receivers, str):
             receivers_list = receivers.split(';')
         else:
-            logging.error('Receivers must be string value.')
+            logger.error('Receivers must be string value.')
             return None
 
         if not self.check_connection():
@@ -40,14 +41,14 @@ class Email:
 
         try:
             self.smtpObj.sendmail(sender, receivers_list, self.build_msg(subject, content, attachment, sender, receivers))
-            logging.info('Email has been sent to {}'.format(receivers))
+            logger.info('Email has been sent to {}'.format(receivers))
             return True
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return None
 
     def reconnect(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
-        logging.info('Reconnect mailing server')
+        logger.info('Reconnect mailing server')
         self.smtpObj = smtplib.SMTP()
         self.smtpObj.connect(host, port)
         self.smtpObj.starttls()
@@ -58,7 +59,7 @@ class Email:
         try:
             status = self.smtpObj.noop()[0]
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             status = -1
         return status == 250
 

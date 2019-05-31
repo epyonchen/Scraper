@@ -27,6 +27,8 @@ FILE_PATH = FILE_DIR + r'\Irregular_Tax.xls'
 ATTACHMENT_PATH = FILE_DIR + r'\{}_异常发票清单_{}.xlsx'
 TABLE_NAME = 'Scrapy_Irregular_TAX'
 
+logger = getLogger(__name__)
+
 
 class Tax:
 
@@ -72,10 +74,10 @@ class Tax:
             ocr_result = bd.ocr_api_call(vpic, VCODE_PATH, bin_threshold=100, detect_direction='false', language_type='ENG', probability='true')
             vcode = self.vcode_validate(ocr_result)
             if vcode:
-                logging.info('Get validation code "{}". Try to login.'.format(vcode))
+                logger.info('Get validation code "{}". Try to login.'.format(vcode))
                 return vcode
             else:
-                # logging.info('Cannot recognize validation code, try again.')
+                # logger.info('Cannot recognize validation code, try again.')
                 self.web.driver.find_element_by_xpath('//*[@id="crcpic"]').click()
 
     # Login
@@ -87,7 +89,7 @@ class Tax:
             self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[5]/td[1]/input', value=vcode)
             self.web.click(path='//*[@id="loginbt"]')
             if '验证码错误' in self.web.driver.page_source:
-                logging.info('Validation code is incorrect, try again.')
+                logger.info('Validation code is incorrect, try again.')
                 continue
             else:
                 try:
@@ -95,12 +97,12 @@ class Tax:
                         EC.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td[1]'))
                     )
                 finally:
-                    logging.info('Sucessfully login.')
+                    logger.info('Sucessfully login.')
                     break
 
     # Export excel with tax records
     def get(self, startdate=PRE3MONTH, enddate=TIMESTAMP, valid=''):
-        logging.info('Query start date: {}, end date: {}, valid: {}'.format(str(startdate), str(enddate), str(valid)))
+        logger.info('Query start date: {}, end date: {}, valid: {}'.format(str(startdate), str(enddate), str(valid)))
         query = self.base + 'cxtj/getInvInfoMx.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&xsdjh='.format(str(startdate), str(enddate), str(valid))
         self.check_last_query()
         try:
@@ -110,16 +112,16 @@ class Tax:
             response = self.session.get(query)
             with open(FILE_PATH, 'wb') as writer:
                 writer.write(response.content)
-            logging.info('Download file.')
+            logger.info('Download file.')
             return True
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return False
 
     # Check if file from previous exists, and delete it
     def check_last_query(self):
         if os.path.isfile(FILE_PATH):
-            logging.info('Delete previous query result')
+            logger.info('Delete previous query result')
             os.remove(FILE_PATH)
 
     def update_cookies(self):
@@ -138,7 +140,7 @@ class Tax:
             if success:
                 break
             else:
-                logging.info('Restart job, Entity {} Server {}'.format(site, server))
+                logger.info('Restart job, Entity {} Server {}'.format(site, server))
                 continue
         tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息', dtype=str)
         tax_df = tax_df[tax_df['序号'] != 'nan']
@@ -158,7 +160,7 @@ def _send_email(entity, receiver, attachment):
         content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
         attachment.to_excel(entity_path, index=False, header=True, sheet_name=entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=entity_path)
-        logging.info('Delete attachment file.')
+        logger.info('Delete attachment file.')
         os.remove(entity_path)
     else:
         subject = '[PAM Tax Checking] - {} 发票无异常 {}'.format(TODAY, entity)
@@ -166,17 +168,18 @@ def _send_email(entity, receiver, attachment):
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
     scrapymail.close()
 
+
 if __name__ == '__main__':
 
     with db.Mssql(keys.dbconfig) as scrapydb:
 
         access = scrapydb.select(TABLE_NAME + '_Access')
-        logging.info('---------------   Irregular tax ratio query.   ---------------')
-        logging.info('Delete existing records.')
+        logger.info('---------------   Irregular tax ratio query.   ---------------')
+        logger.info('Delete existing records.')
         scrapydb.delete(TABLE_NAME)
 
         for index, row in access.iterrows():
-            logging.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
+            logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
             result = Tax.run(site=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
 
             # Upload to database
@@ -188,5 +191,5 @@ if __name__ == '__main__':
 
             numeric_col = ['金额', '单价', '税率', '税额']
             att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
-            _send_email(row['Entity_Name'], row['Email_List'], att)
+            # _send_email(row['Entity_Name'], row['Email_List'], att)
             time.sleep(20)
