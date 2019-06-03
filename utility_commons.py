@@ -54,7 +54,7 @@ def getLogger(site):
                     'formatter': 'brief',
                 },
                 'file': {
-                    'level': 'ERROR',
+                    'level': 'DEBUG',
                     'class': 'logging.FileHandler',
                     'formatter': 'precise',
                     'filename': LOG_DIR + '\\' + site + '.log',
@@ -63,7 +63,7 @@ def getLogger(site):
             },
             'loggers': {
                 'scrapy': {
-                    'level': 'INFO',
+                    'level': 'DEBUG',
                     'handlers': ['console', 'file'],
                     'propagate': False
                 }
@@ -73,7 +73,8 @@ def getLogger(site):
         global __log
         if __log is None:
             logging.config.dictConfig(LOGGING_CONFIG)
-            return logging.getLogger('scrapy')
+            __log = logging.getLogger('scrapy')
+            return __log
         return __log
 
 
