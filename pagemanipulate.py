@@ -1,16 +1,13 @@
 from selenium import webdriver
-from bs4 import BeautifulSoup
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-import os
-import logging
+from utility_commons import *
 
-SCRIPT_DIR = os.getcwd()
-DOWNLOAD_PATH = SCRIPT_DIR + r'\Result'
+
 _DEFAULT_PREFERENCE = {
     'browser.download.folderList': 2,
     'browser.download.manager.showWhenStarting': False,
@@ -19,6 +16,8 @@ _DEFAULT_PREFERENCE = {
     'browser.download.manager.focusWhenStarting': False,
     'browser.helperApps.neverAsk.saveToDisk': 'text/csv/xls/xlsx'
 }
+
+logger = getLogger('scrapy')
 
 
 class Page:
@@ -38,6 +37,15 @@ class Page:
         # self.driver.maximize_window()
         self.soup = None
         self.driver.get(url)
+
+    def __enter__(self):
+        logger.info('Open browser.')
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            logger.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
+        self.close()
 
     def exist(self, path):
         try:
@@ -70,15 +78,6 @@ class Page:
     def close(self):
         self.driver.close()
         logging.info('Browser is closed.')
-
-    def get_requests_cookies(self):
-        import requests
-        webdriver_cookies = self.driver.get_cookies()
-        cookies = requests.cookies.RequestsCookieJar()
-
-        for c in webdriver_cookies:
-            cookies.set(c["name"], c['value'])
-        return cookies
 
 
 if __name__ == '__main__':
