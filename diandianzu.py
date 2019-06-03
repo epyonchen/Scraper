@@ -16,9 +16,9 @@ from scrapers import TwoStepScraper
 
 SITE = 'Diandianzu'
 TABLENAME = 'Scrapy_Diandianzu'
-LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
-logger = getLogger(__name__)
+logger = getLogger(SITE)
 
 
 class Diandianzu(TwoStepScraper):
@@ -30,7 +30,7 @@ class Diandianzu(TwoStepScraper):
     # Get items in one page
     def get_item_list(self, cityname, pagenum):
         list_link = self.search_suffix.format(pagenum)
-        list_soup = self.search(link=list_link)
+        list_soup = self.search(url=self.search_base + list_link)
         item_list = list_soup.find_all('a', attrs={'class': 'tj-pc-listingList-title-click'})
         return item_list
 
@@ -46,7 +46,7 @@ class Diandianzu(TwoStepScraper):
         item_name = item.text
         item_detail_list = []
 
-        one_item_soup = self.search(link=item_link)
+        one_item_soup = self.search(self.search_base + item_link)
         try:
             item_detail_title = one_item_soup.find('div', attrs={'class': 'ftitle clearfix'}).find_all('div')
         except Exception as e:
@@ -94,10 +94,10 @@ if __name__ == '__main__':
 
         for city in cities:
 
-            one_city_df, start, end = Diandianzu.run(city=city, from_page=1, to_page=1)  #, from_page=1, to_page=1
+            one_city_df, start, end = Diandianzu.run(city=city)  #, from_page=1, to_page=1
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
             scrapydb.upload(one_city_df, 'Scrapy_{}'.format(SITE), start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-    scrapyemail.send(SITE, 'Done', LOG_PATH)
+        scrapyemail.send(SITE, 'Done', LOG_PATH)

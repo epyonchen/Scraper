@@ -17,9 +17,9 @@ from scrapers import TwoStepScraper
 
 SITE = 'Lianjia'
 TABLENAME = 'Scrapy_Lianjia'
-LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
-logger = getLogger(__name__)
+logger = getLogger(SITE)
 
 
 class Lianjia(TwoStepScraper):
@@ -27,12 +27,11 @@ class Lianjia(TwoStepScraper):
         TwoStepScraper.__init__(self, city)
         self.search_base = 'https://shangye.lianjia.com'
         self.search_suffix = '/{}/xzl/rent/mlist?page={}'
-        # search_url = search_base +
 
     # Get items in one page
     def get_item_list(self, cityname, pagenum):
         list_link = self.search_suffix.format(cityname, pagenum)
-        list_soup = self.search(link=list_link)
+        list_soup = self.search(self.search_base + list_link)
         item_list = list_soup.find_all('a', attrs={'class': 'result__li'})
         return item_list
 
@@ -47,7 +46,7 @@ class Lianjia(TwoStepScraper):
             return None
         item_name = item.find('p', attrs={'class': 'result__li-title'}).text
         item_detail_list = []
-        one_item_soup = self.search(link=item_link)
+        one_item_soup = self.search(self.search_base + item_link)
 
         try:
             detail_list = one_item_soup.find_all('a', attrs={'class': 'result__li'})
@@ -67,7 +66,7 @@ class Lianjia(TwoStepScraper):
             item_detail['Source_ID'] = city + '_' + re.compile(r'\d+').search(detail_link).group(0)
             # Get item detail
             try:
-                detail_soup = self.search(link=detail_link)
+                detail_soup = self.search(self.search_base + detail_link)
                 details = detail_soup.find('div', attrs={'class': 'detail__info'}).find_all('p', recursive=False)
                 for d in details:
                     item_detail[d.text.split('：')[0]] = d.text.split('：')[1]
@@ -88,4 +87,4 @@ if __name__ == '__main__':
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             scrapydb.upload(one_city_df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-    scrapyemail.send(SITE, 'Done', LOG_PATH)
+        scrapyemail.send(SITE, 'Done', LOG_PATH)
