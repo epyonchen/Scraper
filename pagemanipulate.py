@@ -79,6 +79,15 @@ class Page:
         self.driver.close()
         logging.info('Browser is closed.')
 
+    def get_requests_cookies(self):
+        import requests
+        webdriver_cookies = self.driver.get_cookies()
+        cookies = requests.cookies.RequestsCookieJar()
+
+        for c in webdriver_cookies:
+            cookies.set(c["name"], c['value'])
+        return cookies
+
 
 if __name__ == '__main__':
     url = 'http://210.76.69.38:82/JDGG/QTCGList.aspx?CGLX=A1'
