@@ -26,8 +26,10 @@ VCODE_PATH = PIC_DIR + r'\vcode.jpg'
 FILE_PATH = FILE_DIR + r'\Irregular_Tax.xls'
 ATTACHMENT_PATH = FILE_DIR + r'\{}_异常发票清单_{}.xlsx'
 TABLE_NAME = 'Scrapy_Irregular_TAX'
+SITE = 'Irregular_Tax'
+LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
-logger = getLogger(__name__)
+logger = getLogger(SITE)
 
 
 class Tax:
@@ -191,5 +193,9 @@ if __name__ == '__main__':
 
             numeric_col = ['金额', '单价', '税率', '税额']
             att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
-            # _send_email(row['Entity_Name'], row['Email_List'], att)
+            _send_email(row['Entity_Name'], row['Email_List'], att)
             time.sleep(20)
+
+        scrapyemail = em.Email()
+        scrapyemail.send(SITE, 'Done', LOG_PATH)
+        scrapyemail.close()

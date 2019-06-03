@@ -16,9 +16,9 @@ from scrapers import TwoStepScraper
 
 SITE = 'Haozu'
 TABLENAME = 'Scrapy_Haozu'
-LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
-logger = getLogger(__name__)
+logger = getLogger(SITE)
 
 
 
@@ -32,7 +32,7 @@ class Haozu(TwoStepScraper):
     # Get items in one page
     def get_item_list(self, cityname, pagenum):
         list_link = self.search_url.format(cityname, pagenum)
-        list_soup = self.search(link=list_link)
+        list_soup = self.search(self.search_base + list_link)
         item_list = list_soup.find_all('h1', attrs={'class': 'h1-title'})
         if len(item_list) > 0:
             item_list = item_list[1:]
@@ -47,7 +47,7 @@ class Haozu(TwoStepScraper):
         item_name = item.a.text
         item_detail_list = []
 
-        one_item_soup = self.search(link=item_link)
+        one_item_soup = self.search(self.search_base + item_link)
         try:
             detail_list = one_item_soup.find('div', attrs={'id': 'normal-house-div'}).find_all('tr', attrs={'data-role': 'item'})
             logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
@@ -97,8 +97,8 @@ if __name__ == '__main__':
     with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
         for city in cities:
 
-            one_city_df, start, end = Haozu.run(city=city, from_page=1, to_page=1)  #, from_page=1, to_page=1
+            one_city_df, start, end = Haozu.run(city=city)  #, from_page=1, to_page=1
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
             scrapydb.upload(one_city_df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
 
-    scrapyemail.send(SITE, 'Done', LOG_PATH)
+        scrapyemail.send(SITE, 'Done', LOG_PATH)
