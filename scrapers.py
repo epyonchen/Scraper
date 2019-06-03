@@ -8,9 +8,10 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import logging
-
+import pagemanipulate as pm
 
 logger = logging.getLogger('scrapy')
+
 
 class TwoStepScraper:
     def __init__(self, city):
@@ -18,26 +19,49 @@ class TwoStepScraper:
         self.search_url = None
         self.city = city
         self.df = pd.DataFrame()
-        # search_url = search_base + '/{}/zuxiezilou/a1/o{}/'.format(city, str(page))
+        self.session = requests.session()
+        self.cookies = requests.cookies.RequestsCookieJar()
+        self.switch = True
 
     # Query one link
-    def search(self, link=None, url=None, encoding=None):
-        if link is not None:
-            query = self.search_base + link
-        elif url is not None:
-            query = url
-        else:
-            logger.error('Search link missing.')
-            return None
+    def search(self, url=None, encoding=None):
+        if not url:
+            logger.error('Search url missing.')
+            return False
+
+        # renew session one time if error
+        while True:
+            try:
+                response = requests.get(url)
+                if encoding:
+                    response.encoding = encoding
+                soup = BeautifulSoup(response.text, 'lxml')
+                self.switch = True
+                return soup
+            except Exception as e:
+                if self.switch:
+                    self.renew_session()
+                    continue
+                else:
+                    logger.error(e)
+                    return False
+
+    # Renew session and cookies
+    def renew_session(self):
+        if self.search_base is None:
+            logger.error('Search base is None.')
+            return False
         try:
-            response = requests.get(query)
-            if encoding is not None:
-                response.encoding = encoding
-            soup = BeautifulSoup(response.text, 'lxml')
-            return soup
+            with pm.Page(self.search_base, 'normal') as page:
+                logger.info('Renew session.')
+                self.cookies = page.get_requests_cookies()
+                self.session = requests.Session()
+                self.session.cookies.update(self.cookies)
+                self.switch = False
+            return True
         except Exception as e:
             logger.error(e)
-            return None
+            return False
 
     # Query one city
     @classmethod
@@ -51,7 +75,6 @@ class TwoStepScraper:
             return None, from_page, page
 
         logger.info('Start querying {}.'.format(city))
-
 
         while (to_page is None) or (page <= to_page):
             logger.info('Query City: {}    Page: {}.'.format(city, page))
