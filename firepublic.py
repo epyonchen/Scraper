@@ -17,9 +17,9 @@ from utility_commons import *
 
 SITE = 'FirePublic'
 TABLENAME = 'Scrapy_FirePublic'
-LOG_PATH = LOG_DIR + '\\' + __name__ + '.log'
+LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
-logger = getLogger(__name__)
+logger = getLogger(SITE)
 
 
 class FirePublic:
@@ -73,17 +73,16 @@ class FirePublic:
     # Renew session with form data and cookies
     def renew_session(self):
         logger.info('Renew cookies')
-        page = pm.Page(self.searchbase)
-        renew_soup = BeautifulSoup(page.driver.page_source, 'lxml')
-        renew_form = renew_soup.find_all('input', attrs={'id': list(self.form_data.keys())})
-        for form in renew_form:
-            if form['value'] != '':
-                self.form_data[form['id']] = form['value']
+        with pm.Page(self.searchbase) as page:
+            renew_soup = BeautifulSoup(page.driver.page_source, 'lxml')
+            renew_form = renew_soup.find_all('input', attrs={'id': list(self.form_data.keys())})
+            for form in renew_form:
+                if form['value'] != '':
+                    self.form_data[form['id']] = form['value']
             self.compSession = requests.Session()
-        renew_cookies = page.get_requests_cookies()
-        self.compSession.cookies.update(renew_cookies)
-        page.close()
-        self.switch = True
+            renew_cookies = page.get_requests_cookies()
+            self.compSession.cookies.update(renew_cookies)
+            self.switch = True
 
     @classmethod
     def run(cls, from_page=1, to_page=0, keyword=None):
@@ -114,7 +113,7 @@ class FirePublic:
             # If error, renew form data. If form data has already renewed, stop search
             except Exception as e:
                 if fp.switch is True:
-                    logger.info('Stop run due to: {}'.format(e))
+                    logger.error('Stop run due to: {}'.format(e))
                     break
                 else:
                     fp.renew_session()
@@ -133,8 +132,9 @@ class FirePublic:
                     if k % len(colnames) == 0:
                         df = df.append(row, ignore_index=True)
                         break
-            i += 1
+
             logger.info('Page {} done.'.format(i))
+            i += 1
         start_page = from_page
         end_page = i - 1
         if not df.empty:
@@ -146,7 +146,7 @@ class FirePublic:
 if __name__ == '__main__':
 
     with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
-        df, start, end = FirePublic.run(from_page=3700, to_page=4000)  # 3603
+        df, start, end = FirePublic.run(from_page=1, to_page=2)  # 3923
         if not df.empty:
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
             # df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}_{}.xlsx'.format(site, date, start, end), index=False,
@@ -154,4 +154,4 @@ if __name__ == '__main__':
             scrapydb.upload(df, TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
         else:
             logger.info('Fail this run at page {}.'.format(end))
-    scrapyemail.send(SITE, 'Done', LOG_PATH)
+        scrapyemail.send(SITE, 'Done', LOG_PATH)
