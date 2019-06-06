@@ -31,7 +31,7 @@ class Mssql:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logger.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
+            logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         logger.info('Disconnect database: {}'.format(self.database))
         self.close()
 
@@ -85,9 +85,6 @@ class Mssql:
             total += 1
             if (count % 500 == 0) or (total >= len(df.index)):
                 temp_query = 'INSERT INTO #Temp_{} ({}) VALUES {}'.format(table, columns, values)
-                # query = 'INSERT INTO [{}].[{}] ({}) VALUES {}'.format(self.schema, table, columns, values)
-
-                # If error, delete all records related this load
                 logger.info('Insert {} rows'.format(total))
                 if not self.run(temp_query):
 
@@ -162,7 +159,7 @@ class Mssql:
             else:
                 return True
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             return False
 
     # Update one column of value with/without condition
@@ -202,8 +199,8 @@ class Mssql:
             self.cur.execute(query)
             self.conn.commit()
             return True
-        except pymssql.Error as e:
-            logger.error('SQL Error: {}'.format(e))
+        except pymssql.exception as e:
+            logger.exception('SQL exception: {}'.format(e))
             print(query)
             self.conn.rollback()
             # delete = 'DELETE * FROM {} WHERE SOURCE_NAME = {}'
@@ -254,6 +251,11 @@ if __name__ == '__main__':
     import keys
 
     d = Mssql(keys.dbconfig_win)
-    print('exist temp[', d.exist('{}'.format('Scrapy_Irregular_TAX')))
-    d.run('EXEC CHN.Irregular_Tax_Refresh')
+    # print('exist temp[', d.exist('{}'.format('Scrapy_Irregular_TAX')))
+    # d.run('EXEC CHN.Irregular_Tax_Refresh')
+    # d.close()
+    d.call_sp('CHN.Irregular_Tax_Refresh2', table_name='Scrapy_Irregular_TAX_bk2')
+    a = d.call_sp('CHN.Irregular_Tax_ETL2', True, table_name='Scrapy_Irregular_TAX_bk2', entity_name='914401017181366603')
+    print(a)
+    # d.delete('Scrapy_Irregular_TAX')
     d.close()

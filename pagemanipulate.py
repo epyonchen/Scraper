@@ -44,7 +44,7 @@ class Page:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            logger.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
+            logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         self.close()
 
     def exist(self, path):
@@ -64,7 +64,7 @@ class Page:
             # print(self.soup)
             return self.driver.page_source
         except TimeoutException as e:
-            logging.error(e)
+            logging.exception(e)
             return False
 
     def send(self, path, value):
@@ -73,7 +73,7 @@ class Page:
                 self.driver.find_element_by_xpath(path).send_keys(value)
 
         except Exception as e:
-            logging.error(e)
+            logging.exception(e)
 
     def close(self):
         self.driver.close()
