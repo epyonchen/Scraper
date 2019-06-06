@@ -52,13 +52,15 @@ def getLogger(site):
                     'level': 'DEBUG',
                     'class': 'logging.StreamHandler',
                     'formatter': 'brief',
+                    # 'encoding': 'utf-8'
                 },
                 'file': {
                     'level': 'DEBUG',
                     'class': 'logging.FileHandler',
                     'formatter': 'precise',
                     'filename': LOG_DIR + '\\' + site + '.log',
-                    'mode': 'w'
+                    'mode': 'w',
+                    'encoding': 'utf-8'
                 },
             },
             'loggers': {
