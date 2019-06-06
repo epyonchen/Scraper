@@ -118,7 +118,7 @@ class FirePublic:
                     continue
 
                 else:
-                    logger.error('Stop run due to: {}'.format(e))
+                    logger.ecectption('Stop run due to: {}'.format(e))
                     fp.switch = True
                     break
 
@@ -145,7 +145,7 @@ class FirePublic:
 if __name__ == '__main__':
 
     with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
-        df, start, end = FirePublic.run(from_page=1, to_page=2)  # 3923
+        df, start, end = FirePublic.run(from_page=3923, to_page=4000)  # 3923
         if not df.empty:
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
             # df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}_{}.xlsx'.format(site, date, start, end), index=False,
@@ -153,4 +153,4 @@ if __name__ == '__main__':
             scrapydb.upload(df, TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
         else:
             logger.info('Fail this run at page {}.'.format(end))
-        scrapyemail.send(SITE, 'Done', LOG_PATH)
+        # scrapyemail.send(SITE, 'Done', LOG_PATH)

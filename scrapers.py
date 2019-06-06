@@ -26,7 +26,7 @@ class TwoStepScraper:
     # Query one link
     def search(self, url=None, encoding=None):
         if not url:
-            logger.error('Search url missing.')
+            logger.exception('Search url missing.')
             return False
 
         # renew session one time if error
@@ -43,13 +43,13 @@ class TwoStepScraper:
                     self.renew_session()
                     continue
                 else:
-                    logger.error(e)
+                    logger.exception(e)
                     return False
 
     # Renew session and cookies
     def renew_session(self):
         if self.search_base is None:
-            logger.error('Search base is None.')
+            logger.exception('Search base is None.')
             return False
         try:
             with pm.Page(self.search_base, 'normal') as page:
@@ -60,7 +60,7 @@ class TwoStepScraper:
                 self.switch = False
             return True
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             return False
 
     # Query one city
@@ -71,7 +71,7 @@ class TwoStepScraper:
         item_load_list = []
 
         if city is None:
-            logger.error('City is missing.')
+            logger.exception('City is missing.')
             return None, from_page, page
 
         logger.info('Start querying {}.'.format(city))
