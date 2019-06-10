@@ -72,7 +72,7 @@ class TwoStepScraper:
 
         if city is None:
             logger.exception('City is missing.')
-            return None, from_page, page
+            return None, str(from_page), str(page)
 
         logger.info('Start querying {}.'.format(city))
 
@@ -89,7 +89,7 @@ class TwoStepScraper:
                 logger.info('Total {} records, {} pages.'.format(str(len(item_load_list)), str(page - from_page)))
                 if item_load_list != []:
                     one_city.df = one_city.df.append(item_load_list, ignore_index=True, sort=False)
-                return one_city.df, from_page, page - 1
+                return one_city.df, str(from_page), str(page - 1)
             else:
                 # Go through items in one page
                 for item in item_list:

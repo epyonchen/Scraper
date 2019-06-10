@@ -90,7 +90,7 @@ class Diandianzu(TwoStepScraper):
 if __name__ == '__main__':
 
     cities = ['gz', 'sz', 'sh', 'bj', 'cd']
-    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
+    with db.Mssql(keys.dbconfig) as scrapydb:
 
         for city in cities:
 
@@ -100,4 +100,7 @@ if __name__ == '__main__':
             # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
             scrapydb.upload(one_city_df, 'Scrapy_{}'.format(SITE), start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-        scrapyemail.send(SITE, 'Done', LOG_PATH)
+
+    scrapyemail = em.Email()
+    scrapyemail.send(SITE, 'Done', LOG_PATH)
+    scrapyemail.close()
