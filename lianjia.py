@@ -79,12 +79,15 @@ class Lianjia(TwoStepScraper):
 
 if __name__ == '__main__':
 
-    cities = ['gz', 'sz', 'sh', 'bj', 'cd'] #
-    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
+    cities = ['gz', 'sz', 'sh', 'bj', 'cd']
+    with db.Mssql(keys.dbconfig) as scrapydb:
 
         for city in cities:
             one_city_df, start, end = Lianjia.run(city=city)  # , from_page=1, to_page=1
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             scrapydb.upload(one_city_df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-        scrapyemail.send(SITE, 'Done', LOG_PATH)
+
+    scrapyemail = em.Email()
+    scrapyemail.send(SITE, 'Done', LOG_PATH)
+    scrapyemail.close()

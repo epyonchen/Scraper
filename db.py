@@ -237,7 +237,7 @@ class Mssql:
 
         if not self.exist(log_table):
             self.create_table('[{}].[{}]'.format(self.schema, log_table), log_columns)
-
+        print(table,type(table), start, type(start), end, type(end))
         log_values = 'N\'' + '\',N\''.join([start, end, table]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
         log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(log_table, log_values)
 
