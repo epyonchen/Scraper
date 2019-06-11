@@ -4,8 +4,10 @@ import requests
 import time
 import random
 import gecodeconvert as gc
-import logging
 from aip import AipOcr
+from utility_commons import *
+
+logger = logging.getLogger('scrapy')
 
 
 class Baidu:
@@ -33,19 +35,16 @@ class Baidu:
 
     def ocr_api_call(self, image, path, bin_threshold=100, **kwargs):
         bin_image = self.ocr_image_process(image, path, bin_threshold)
-        # while True:
-        #     try:
-        result = self.client.basicGeneral(bin_image, kwargs)
-            #     break
-            # except Exception as e:
-            #     logging.error(e)
-            #     self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
-            #     continue
+        try:
+            result = self.client.basicGeneral(bin_image, kwargs)
+        except Exception as e:
+            logger.exception(e)
+            return False
 
         if ('words_result_num' in result.keys()) and result['words_result_num'] > 0:
             return result
         else:
-            return None
+            return False
 
     # Call map api, refer parameter to http://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-placeapi
     def map_api_call(self, baidu_key, location_input=None, **kwargs):
@@ -60,7 +59,7 @@ class Baidu:
 
         # Validate response
         if (response['status'] != 0) or response['total'] < 1:
-            return None
+            return False
         else:
             one_call = list()
             for record in response['results']:
@@ -80,7 +79,7 @@ class Baidu:
 
             return one_call
 
-
+    # Get nested dict
     def get_nested_value(self, record):
         new_record = record.copy()
         for key, value in record.items():
@@ -108,11 +107,12 @@ class Baidu:
                         df.append(one_call, ignore_index=True)
         return df
 
-    # Convert from Baidu to
+    # Convert from Baidu to wgs84
     def geocode_convert(self, lat, lon):
 
         return gc.bd09_to_wgs84(lon, lat)
 
+    # Validate if location in return records
     def validate_in(self, record, location_in):
         for loc in location_in:
             if (loc in record['address']) or (loc in record['name']):
