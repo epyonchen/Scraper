@@ -79,6 +79,8 @@ class Tax:
             if vpic:
                 bd = baidu_api.Baidu(api='ocr')
                 ocr_result = bd.ocr_api_call(vpic, VCODE_PATH, bin_threshold=100, detect_direction='false', language_type='ENG', probability='true')
+                if not ocr_result:
+                    continue
                 vcode = self.vcode_validate(ocr_result)
                 if vcode:
                     logger.info('Get validation code "{}". Try to login.'.format(vcode))
@@ -201,35 +203,38 @@ def _send_email(entity, receiver, attachment):
 
 if __name__ == '__main__':
 
-    # with db.Mssql(keys.dbconfig) as scrapydb:
-    scrapydb = db.Mssql(keys.dbconfig)
-    access = scrapydb.select(ACCESS_TABLE_NAME)
-    logger.info('---------------   Irregular tax ratio query.   ---------------')
-    logger.info('Delete existing records.')
-    scrapydb.delete(TABLE_NAME)
-    scrapydb.close()
+    with db.Mssql(keys.dbconfig) as scrapydb:
+        access = scrapydb.select(ACCESS_TABLE_NAME)
+        logger.info('---------------   Irregular tax ratio query.   ---------------')
+        logger.info('Delete existing records.')
+        scrapydb.delete(TABLE_NAME)
 
+    # Core scraping process
     for index, row in access.iterrows():
         scrapydb = db.Mssql(keys.dbconfig)
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
         result = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
-
         # Upload to database
         scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
-        # Update Irregular_Ind by executing stored procedure
-        scrapydb.call_sp('CHN.Irregular_Tax_Refresh2', table_name=TABLE_NAME)
-        # Get irregular record
-        att = scrapydb.call_sp('CHN.Irregular_Tax_ETL2', True, table_name=TABLE_NAME, entity_name=row['Entity_Name'])
         scrapydb.close()
-        numeric_col = ['金额', '单价', '税率', '税额']
-        if att is not None:
-            att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
-        _send_email(row['Entity_Name'], row['Email_List'], att)
         time.sleep(20)
 
-    scrapyemail = em.Email()
-    scrapyemail.send(SITE, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
-    scrapyemail.close()
+    # Ensure failure of scraping process do not interrupt email and sp execution
+    with db.Mssql(keys.dbconfig) as scrapydb:
+        for index, row in access.iterrows():
+            # Update Irregular_Ind by executing stored procedure
+            scrapydb.call_sp('CHN.Irregular_Tax_Refresh2', table_name=TABLE_NAME)
+            # Get irregular record
+            att = scrapydb.call_sp('CHN.Irregular_Tax_ETL2', True, table_name=TABLE_NAME, entity_name=row['Entity_Name'])
+            numeric_col = ['金额', '单价', '税率', '税额']
+            if att is not False:
+                att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
+            _send_email(row['Entity_Name'], row['Email_List'], att)
+
+    # Send email summary
+    with em.Email() as scrapyemail:
+        scrapyemail.send(SITE, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
 
     exit()
+
 
