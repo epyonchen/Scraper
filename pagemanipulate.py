@@ -17,7 +17,7 @@ _DEFAULT_PREFERENCE = {
     'browser.helperApps.neverAsk.saveToDisk': 'text/csv/xls/xlsx'
 }
 
-logger = getLogger('scrapy')
+logger = logging.getLogger('scrapy')
 
 
 class Page:
