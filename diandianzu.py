@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
             # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
-            scrapydb.upload(one_city_df, 'Scrapy_{}'.format(SITE), start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
+            scrapydb.upload(one_city_df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
 
     scrapyemail = em.Email()
     scrapyemail.send(SITE, 'Done', LOG_PATH)
