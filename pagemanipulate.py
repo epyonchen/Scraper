@@ -22,21 +22,22 @@ logger = logging.getLogger('scrapy')
 
 class Page:
 
-    def __init__(self, url, pageLoadStrategy='eager', **preference):
-        self.desired_capabilities = DesiredCapabilities.FIREFOX
-        self.desired_capabilities["pageLoadStrategy"] = pageLoadStrategy
-        self.options = webdriver.FirefoxOptions()
-        self.options.add_argument('-headless')
-        if not bool(preference):
-            _DEFAULT_PREFERENCE.update(preference)
-        self.profile = webdriver.FirefoxProfile()
-        for key, value in _DEFAULT_PREFERENCE.items():
-            self.profile.set_preference(key, value)
-
-        self.driver = webdriver.Firefox(firefox_options=self.options, firefox_profile=self.profile)
-        # self.driver.maximize_window()
-        self.soup = None
-        self.driver.get(url)
+    def __init__(self, url='http://www.example.com', page_load_strategy='eager', **preference):
+        # self.desired_capabilities = DesiredCapabilities.FIREFOX
+        # self.desired_capabilities["pageLoadStrategy"] = pageLoadStrategy
+        # self.options = webdriver.FirefoxOptions()
+        # self.options.add_argument('-headless')
+        # if not bool(preference):
+        #     _DEFAULT_PREFERENCE.update(preference)
+        # self.profile = webdriver.FirefoxProfile()
+        # for key, value in _DEFAULT_PREFERENCE.items():
+        #     self.profile.set_preference(key, value)
+        #
+        # self.driver = webdriver.Firefox(firefox_options=self.options, firefox_profile=self.profile)
+        # # self.driver.maximize_window()
+        # self.soup = None
+        # self.driver.get(url)
+        self.renew(url, page_load_strategy, **preference)
 
     def __enter__(self):
         logger.info('Open browser.')
@@ -46,26 +47,34 @@ class Page:
         if exc_type:
             logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         self.close()
+        logger.info('Close browser.')
 
     def exist(self, path):
         try:
             tab = self.driver.find_element_by_xpath(path)
             return tab
         except NoSuchElementException as e:
-            logging.info('Xpath: {} not exists.'.format(path))
+            logger.info('Xpath: {} not exists.'.format(path))
             return False
 
+    def get(self, url):
+        self.base = url
+        self.driver.get(self.base)
+        self.soup = self.driver.page_source
+
     def click(self, path):
-        try:
-            wait = WebDriverWait(self.driver, 1)
-            wait.until(EC.element_to_be_clickable((By.XPATH, path)))
-            self.driver.find_element_by_xpath(path).click()
-            self.soup = self.driver.page_source
-            # print(self.soup)
-            return self.driver.page_source
-        except TimeoutException as e:
-            logging.exception(e)
-            return False
+        while True:
+            try:
+                wait = WebDriverWait(self.driver, 10)
+                wait.until(EC.element_to_be_clickable((By.XPATH, path)))
+                self.driver.find_element_by_xpath(path).click()
+                self.soup = self.driver.page_source
+                # print(self.soup)
+                return self.driver.page_source
+            except TimeoutException as e:
+                self.renew(self.base)
+                logger.exception(e)
+                # return False
 
     def send(self, path, value):
         try:
@@ -73,11 +82,29 @@ class Page:
                 self.driver.find_element_by_xpath(path).send_keys(value)
 
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
+
+    def renew(self, url='http://www.example.com', page_load_strategy='eager', **preference):
+        if hasattr(self, 'driver'):
+            self.close()
+            logger.info('Renew browser.')
+        self.desired_capabilities = DesiredCapabilities.FIREFOX
+        self.desired_capabilities["pageLoadStrategy"] = page_load_strategy
+        self.options = webdriver.FirefoxOptions()
+        self.options.add_argument('-headless')
+        if not bool(preference):
+            _DEFAULT_PREFERENCE.update(preference)
+        self.profile = webdriver.FirefoxProfile()
+        for key, value in _DEFAULT_PREFERENCE.items():
+            self.profile.set_preference(key, value)
+        self.driver = webdriver.Firefox(firefox_options=self.options, firefox_profile=self.profile)
+        # self.driver.maximize_window()
+        self.soup = None
+        self.driver.get(url)
 
     def close(self):
+        logger.info('Browser is closed.')
         self.driver.close()
-        logging.info('Browser is closed.')
 
     def get_requests_cookies(self):
         import requests
