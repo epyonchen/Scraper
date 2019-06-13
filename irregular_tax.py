@@ -153,9 +153,8 @@ class Tax:
     # Renew selenium and session
     # TODO: refresh selenium and session when error
     def renew(self):
-        self.web.close()
         logger.info('Renew browser and session.')
-        self.web = pm.Page(self.base, 'normal')
+        self.web.renew(self.base)
         self.web.driver.implicitly_wait(10)
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
@@ -187,7 +186,7 @@ def _send_email(entity, receiver, attachment):
 
     if (att is False) or attachment.empty:
         subject = '[PAM Tax Checking] - {} 发票无异常 {}'.format(TODAY, entity)
-        content = 'Hi All,\r\n\r\n{}的发票无记录。\r\n\r\nThanks.'.format(entity)
+        content = 'Hi All,\r\n\r\n{}的发票无异常记录。\r\n\r\nThanks.'.format(entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
     else:
         entity_path = ATTACHMENT_PATH.format(TODAY, entity)
