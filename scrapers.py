@@ -19,6 +19,7 @@ class TwoStepScraper:
         self.search_url = None
         self.city = city
         self.df = pd.DataFrame()
+        self.info = pd.DataFrame()
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
         self.switch = True
