@@ -77,10 +77,12 @@ class Tax:
         while True:
             vpic = self.get_vcode_pic()
             if vpic:
-                bd = baidu_api.Baidu(api='ocr')
-                ocr_result = bd.ocr_api_call(vpic, VCODE_PATH, bin_threshold=100, detect_direction='false', language_type='ENG', probability='true')
-                if not ocr_result:
+                ocr = baidu_api.Baidu(api='ocr')
+                ocr_result = ocr.ocr_api_call(vpic, VCODE_PATH, bin_threshold=100, detect_direction='false', language_type='ENG', probability='true')
+                if (not ocr_result) and (ocr.switch < 4):
                     continue
+                elif (not ocr_result) and (ocr.switch >= 4):
+                    exit(1)
                 vcode = self.vcode_validate(ocr_result)
                 if vcode:
                     logger.info('Get validation code "{}". Try to login.'.format(vcode))
@@ -184,7 +186,7 @@ def _send_email(entity, receiver, attachment):
     # Send email
     scrapymail = em.Email()
 
-    if (att is False) or attachment.empty:
+    if (attachment is False) or attachment.empty:
         subject = '[PAM Tax Checking] - {} 发票无异常 {}'.format(TODAY, entity)
         content = 'Hi All,\r\n\r\n{}的发票无异常记录。\r\n\r\nThanks.'.format(entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
@@ -216,7 +218,7 @@ if __name__ == '__main__':
         # Upload to database
         scrapydb.upload(result, TABLE_NAME, False, False, None, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP)
         scrapydb.close()
-        time.sleep(20)
+        # time.sleep(20)
 
     # Ensure failure of scraping process do not interrupt email and sp execution
     with db.Mssql(keys.dbconfig) as scrapydb:
@@ -231,9 +233,10 @@ if __name__ == '__main__':
             _send_email(row['Entity_Name'], row['Email_List'], att)
 
     # Send email summary
-    with em.Email() as scrapyemail:
-        scrapyemail.send(SITE, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
-
+    # with em.Email() as scrapyemail_summary:
+    scrapyemail_summary = em.Email()
+    scrapyemail_summary.send(SITE, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
+    scrapyemail_summary.close()
     exit()
 
 
