@@ -43,7 +43,7 @@ class Lianjia(TwoStepScraper):
             item_id = re.compile(r'\d+').search(item_link).group(0)
         except Exception as e:
             print(e)
-            return None
+            return False
         item_name = item.find('p', attrs={'class': 'result__li-title'}).text
         item_detail_list = []
         one_item_soup = self.search(self.search_base + item_link)
@@ -53,7 +53,7 @@ class Lianjia(TwoStepScraper):
             logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception as e:
             logger.error(e)
-            return None
+            return False
 
         # Go through detail list of one item
         for row in detail_list:

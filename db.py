@@ -138,13 +138,13 @@ class Mssql:
     # Call stored procedure
     def call_sp(self, sp, output=False, **kwargs):
         try:
-            input = ''
+            inputs = ''
             if bool(kwargs):
-                input = []
+                inputs = []
                 for key, value in kwargs.items():
-                    input.append('@{} = N\'{}\''.format(key, value))
-                input = ', '.join(input)
-            query = "EXEC {} {}".format(sp, input)
+                    inputs.append('@{} = N\'{}\''.format(key, value))
+                inputs = ', '.join(inputs)
+            query = "EXEC {} {}".format(sp, inputs)
 
             self.cur.execute(query)
             logger.info('Execute store procedure: {}'.format(sp))
@@ -199,7 +199,7 @@ class Mssql:
             self.cur.execute(query)
             self.conn.commit()
             return True
-        except pymssql.exception as e:
+        except pymssql.error as e:
             logger.exception('SQL exception: {}'.format(e))
             print(query)
             self.conn.rollback()

@@ -118,7 +118,7 @@ class FirePublic:
                     continue
 
                 else:
-                    logger.ecectption('Stop run due to: {}'.format(e))
+                    logger.exception('Stop run due to: {}'.format(e))
                     fp.switch = True
                     break
 

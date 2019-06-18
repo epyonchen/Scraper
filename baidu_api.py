@@ -13,7 +13,7 @@ logger = logging.getLogger('scrapy')
 class Baidu:
 
     def __init__(self, api=None):
-
+        self.switch = 0
         if api == 'map':
             self.base = 'http://api.map.baidu.com/place/v2/search?'#query={}&ak=' + keys.baidu['map']
         elif api == 'ocr':
@@ -38,6 +38,7 @@ class Baidu:
         try:
             result = self.client.basicGeneral(bin_image, kwargs)
         except Exception as e:
+            self.renew_client()
             logger.exception(e)
             return False
 
@@ -45,6 +46,10 @@ class Baidu:
             return result
         else:
             return False
+
+    def renew_client(self):
+        self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
+        self.switch += 1
 
     # Call map api, refer parameter to http://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-placeapi
     def map_api_call(self, baidu_key, location_input=None, **kwargs):
