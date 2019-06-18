@@ -142,7 +142,7 @@ class Mssql:
             if bool(kwargs):
                 inputs = []
                 for key, value in kwargs.items():
-                    input.append('@{} = N\'{}\''.format(key, value))
+                    inputs.append('@{} = N\'{}\''.format(key, value))
                 inputs = ', '.join(inputs)
             query = "EXEC {} {}".format(sp, inputs)
 
