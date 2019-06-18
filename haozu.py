@@ -53,7 +53,7 @@ class Haozu(TwoStepScraper):
             logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception as e:
             logger.error(e)
-            return None
+            return False
 
         # Go through detail list of one item
         for row in detail_list:

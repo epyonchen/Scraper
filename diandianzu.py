@@ -42,7 +42,7 @@ class Diandianzu(TwoStepScraper):
             item_id = re.compile(r'\d+').search(item_link).group(0)
         except Exception as e:
             print(e)
-            return None
+            return False
         item_name = item.text
         item_detail_list = []
 
@@ -51,15 +51,15 @@ class Diandianzu(TwoStepScraper):
             item_detail_title = one_item_soup.find('div', attrs={'class': 'ftitle clearfix'}).find_all('div')
         except Exception as e:
             logger.error(e)
-            return None
+            return False
         if not item_detail_title:
-            return None
+            return False
         try:
             detail_list = one_item_soup.find('div', attrs={'class': 'fbody'}).find_all('div', attrs={'class': re.compile('fitem .*')})
             logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception as e:
             logger.error(e)
-            return None
+            return False
 
         # Go through detail list of one item
         for row in detail_list:
