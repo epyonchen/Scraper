@@ -102,5 +102,5 @@ if __name__ == '__main__':
             scrapydb.upload(one_city.df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
 
     scrapyemail = em.Email()
-    scrapyemail.send(SITE, 'Done', LOG_PATH)
+    scrapyemail.send(TABLENAME, 'Done', LOG_PATH)
     scrapyemail.close()
