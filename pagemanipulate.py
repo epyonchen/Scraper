@@ -37,17 +37,17 @@ class Page:
         # # self.driver.maximize_window()
         # self.soup = None
         # self.driver.get(url)
+        logger.info('Open browser.')
         self.renew(url, page_load_strategy, **preference)
 
     def __enter__(self):
-        logger.info('Open browser.')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
             logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         self.close()
-        logger.info('Close browser.')
+        # logger.info('Close browser.')
 
     def exist(self, path):
         try:
@@ -103,7 +103,7 @@ class Page:
         self.driver.get(url)
 
     def close(self):
-        logger.info('Browser is closed.')
+        logger.info('Close browser.')
         self.driver.close()
 
     def get_requests_cookies(self):

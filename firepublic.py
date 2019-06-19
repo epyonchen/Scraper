@@ -72,7 +72,7 @@ class FirePublic:
 
     # Renew session with form data and cookies
     def renew_session(self):
-        logger.info('Renew cookies')
+        logger.info('Renew cookies.')
         with pm.Page(self.searchbase) as page:
             renew_soup = BeautifulSoup(page.driver.page_source, 'lxml')
             renew_form = renew_soup.find_all('input', attrs={'id': list(self.form_data.keys())})
@@ -145,7 +145,7 @@ class FirePublic:
 if __name__ == '__main__':
 
     with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
-        df, start, end = FirePublic.run(from_page=3923, to_page=4000)  # 3923
+        df, start, end = FirePublic.run(from_page=3931, to_page=4000)  # 3923
         if not df.empty:
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
             # df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}_{}.xlsx'.format(site, date, start, end), index=False,
@@ -153,4 +153,4 @@ if __name__ == '__main__':
             scrapydb.upload(df, TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
         else:
             logger.info('Fail this run at page {}.'.format(end))
-        # scrapyemail.send(SITE, 'Done', LOG_PATH)
+        scrapyemail.send(TABLENAME, 'Done', LOG_PATH)
