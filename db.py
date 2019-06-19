@@ -45,13 +45,15 @@ class Mssql:
     # insert df into table
     def upload(self, df, table, new_id=True, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
 
-        columns = list(df)
-        columns = ' [' + '], ['.join(columns) + ']'
+        temp_columns = list(df)
+        columns = ' [' + '], ['.join(temp_columns) + ']'
         value_default = '({})'
         if new_id:
+            temp_column = temp_columns.append('UID')
             columns = '[UID],' + columns
             value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID())'.format(table) + ',{}')
         if bool(logs):
+            temp_columns = temp_columns + list(logs.keys())
             columns = columns + ', [' + '], ['.join(logs.keys()) + ']'
             log_values = '{} ,N\'' + '\',N\''.join(logs.values()) + '\''
             value_default = value_default.format(log_values)
@@ -97,7 +99,13 @@ class Mssql:
             where_cond = 'WHERE {} NOT IN (SELECT DISTINCT {} FROM [{}].[{}])'.format(dedup_id, dedup_id, self.schema, table)
         else:
             where_cond = ''
-        insert_query = 'INSERT INTO [{}].[{}] ({}) (SELECT {} FROM #Temp_{} {})'.format(self.schema, table, columns, columns, table, where_cond)
+
+        # Columns cross-check
+
+        existing_columns = list(self.select(table, source=0))
+        insert_columns = list(set(existing_columns) & set(temp_columns))
+        insert_columns = '[' + '], ['.join(insert_columns) + ']'
+        insert_query = 'INSERT INTO [{}].[{}] ({}) (SELECT {} FROM #Temp_{} {})'.format(self.schema, table, insert_columns, insert_columns, table, where_cond)
 
         drop_temp = 'DROP TABLE #Temp_{}'.format(table)
         # query = 'SELECT {} FROM #Temp_{} WHERE Office_ID NOT IN (SELECT DISTINCT Office_ID FROM [{}].[{}])'.format(columns, table, self.schema, table)
@@ -119,18 +127,18 @@ class Mssql:
             condition = ''
         else:
             cond = []
+            cust_cond = []
             if 'customized' in kwargs.keys():
                 customized = kwargs['customized']
-                cust_cond = []
                 for key, value in customized.items():
                     cust_cond.append('[{}] {}'.format(key, value))
                 cust_condition = 'AND '.join(cust_cond)
                 del kwargs['customized']
             for key, value in kwargs.items():
                 cond.append('[{}] = N\'{}\''.format(key, value))
-            condition = 'WHERE ' + ' AND '.join(cond) + (' AND ' + cust_condition) if bool(cust_cond) else ''
 
-        query = 'SELECT {} FROM [{}].[{}] {}'.format(columns, self.schema, table, condition)
+            condition = 'WHERE ' + ' AND '.join(cond) + (' AND ' + cust_condition) if bool(cust_cond) else ''
+        query = "SELECT {} FROM [{}].[{}] {}".format(columns, self.schema, table, condition)
         result = pd.read_sql(query, self.conn)
         # df = pd.DataFrame(result)
         return result
@@ -199,7 +207,7 @@ class Mssql:
             self.cur.execute(query)
             self.conn.commit()
             return True
-        except pymssql.error as e:
+        except Exception as e:
             logger.exception('SQL exception: {}'.format(e))
             print(query)
             self.conn.rollback()
@@ -253,8 +261,6 @@ if __name__ == '__main__':
     # print('exist temp[', d.exist('{}'.format('Scrapy_Irregular_TAX')))
     # d.run('EXEC CHN.Irregular_Tax_Refresh')
     # d.close()
-    d.call_sp('CHN.Irregular_Tax_Refresh2', table_name='Scrapy_Irregular_TAX_bk2')
-    a = d.call_sp('CHN.Irregular_Tax_ETL2', True, table_name='Scrapy_Irregular_TAX_bk2', entity_name='914401017181366603')
-    print(a)
-    # d.delete('Scrapy_Irregular_TAX')
+    existing_column = d.select('Scrapy_Irregular_Tax', timestamp='0', customized={'timestamp': '>1'})
+    print(list(existing_column), existing_column)
     d.close()
