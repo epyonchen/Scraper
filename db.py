@@ -36,22 +36,24 @@ class Mssql:
         self.close()
 
     # Create table
-    def create_table(self, table, columns):
+    def create_table(self, table_name, columns, schema=None):
         columns_init = columns.replace(',', ' NVARCHAR(255),') + ' NVARCHAR(255)'
+        table = self.get_table(table_name, schema)
         query = 'CREATE TABLE {} ({})'.format(table, columns_init)
         logger.info('Creat table {}'.format(table))
         return self.run(query)
 
     # insert df into table
-    def upload(self, df, table, new_id=True, dedup=False, dedup_id='Source_ID', start='1', end='0', **logs):
+    def upload(self, df, table_name, new_id=True, dedup=False, dedup_id='Source_ID', start='1', end='0', schema=None, **logs):
+        table = self.get_table(table_name, schema)
 
         temp_columns = list(df)
         columns = ' [' + '], ['.join(temp_columns) + ']'
         value_default = '({})'
         if new_id:
-            temp_column = temp_columns.append('UID')
+            temp_columns.append('UID')
             columns = '[UID],' + columns
-            value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID())'.format(table) + ',{}')
+            value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID())'.format(table_name) + ',{}')
         if bool(logs):
             temp_columns = temp_columns + list(logs.keys())
             columns = columns + ', [' + '], ['.join(logs.keys()) + ']'
@@ -59,9 +61,9 @@ class Mssql:
             value_default = value_default.format(log_values)
 
         # If table does not exist, create one
-        if not self.exist(table):
-            logger.info('Table [{}].[{}] does not exist'.format(self.schema, table))
-            if not self.create_table('[{}].[{}]'.format(self.schema, table), columns):
+        if not self.exist(table_name):
+            logger.info('Table {} does not exist'.format(table))
+            if not self.create_table(table_name=table_name, columns=columns, schema=schema):
                 return False
 
         # Load to temp table
@@ -69,8 +71,8 @@ class Mssql:
         count = 0
         total = 0
 
-        if not self.exist('#Temp_{}'.format(table)):
-            self.create_table('#Temp_{}'.format(table), columns)
+        if not self.exist('#Temp_{}'.format(table_name)):
+            self.create_table(table_name='#Temp_{}'.format(table_name), columns=columns, schema=False)
         # Built insert query
         for index, row in df.iterrows():
             # Replace ' as empty
@@ -86,7 +88,7 @@ class Mssql:
             count += 1
             total += 1
             if (count % 500 == 0) or (total >= len(df.index)):
-                temp_query = 'INSERT INTO #Temp_{} ({}) VALUES {}'.format(table, columns, values)
+                temp_query = 'INSERT INTO #Temp_{} ({}) VALUES {}'.format(table_name, columns, values)
                 logger.info('Insert {} rows'.format(total))
                 if not self.run(temp_query):
 
@@ -102,24 +104,25 @@ class Mssql:
 
         # Columns cross-check
 
-        existing_columns = list(self.select(table, source=0))
+        existing_columns = list(self.select(table_name, source=0))
         insert_columns = list(set(existing_columns) & set(temp_columns))
         insert_columns = '[' + '], ['.join(insert_columns) + ']'
-        insert_query = 'INSERT INTO [{}].[{}] ({}) (SELECT {} FROM #Temp_{} {})'.format(self.schema, table, insert_columns, insert_columns, table, where_cond)
+        insert_query = 'INSERT INTO {} ({}) (SELECT {} FROM #Temp_{} {})'.format(table, insert_columns, insert_columns, table_name, where_cond)
 
-        drop_temp = 'DROP TABLE #Temp_{}'.format(table)
+        drop_temp = 'DROP TABLE #Temp_{}'.format(table_name)
         # query = 'SELECT {} FROM #Temp_{} WHERE Office_ID NOT IN (SELECT DISTINCT Office_ID FROM [{}].[{}])'.format(columns, table, self.schema, table)
         if self.run(insert_query):
             if start <= end:
-                self.log(table, start, end, **logs)
+                self.log(table_name, start, end, **logs)
         self.run(drop_temp)
 
     # Select all
-    def select(self, table, columns='*', **kwargs):
+    def select(self, table_name, columns='*', schema=None, **kwargs):
         if columns != '*':
             columns = ', '.join(columns)
 
-        if not self.exist(table):
+        table = self.get_table(table_name, schema)
+        if not self.exist(table_name):
             return False
 
         # Condition build up
@@ -138,7 +141,7 @@ class Mssql:
                 cond.append('[{}] = N\'{}\''.format(key, value))
 
             condition = 'WHERE ' + ' AND '.join(cond) + (' AND ' + cust_condition) if bool(cust_cond) else ''
-        query = "SELECT {} FROM [{}].[{}] {}".format(columns, self.schema, table, condition)
+        query = "SELECT {} FROM {} {}".format(columns, table, condition)
         result = pd.read_sql(query, self.conn)
         # df = pd.DataFrame(result)
         return result
@@ -171,7 +174,8 @@ class Mssql:
             return False
 
     # Update one column of value with/without condition
-    def update(self, table, set_col, set_value, set_case=True, **kwargs):
+    def update(self, table_name, set_col, set_value, set_case=True, schema=None, **kwargs):
+        table = self.get_table(table_name, schema)
         if not self.exist(table):
             return False
 
@@ -192,11 +196,11 @@ class Mssql:
         return self.run(query)
 
     # Check if table exists
-    def exist(self, table):
+    def exist(self, table_name):
         query = 'IF EXISTS (SELECT * FROM {}.INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE \'%{}\') ' \
                 'BEGIN SELECT 1 ' \
                 'END ' \
-                'ELSE SELECT 0'.format(self.database, table)
+                'ELSE SELECT 0'.format(self.database, table_name)
 
         self.cur.execute(query)
         return self.cur.fetchone()[0]
@@ -212,17 +216,17 @@ class Mssql:
             print(query)
             self.conn.rollback()
             # delete = 'DELETE * FROM {} WHERE SOURCE_NAME = {}'
-            # delete_query = map(lambda x: delete.format(x, sourcename), tablenames.values())
+            # delete_query = map(lambda x: delete.format(x, sourcename), table_names.values())
             # delete_query = '; '.join(delete_query)
             # cur.execute(delete_query)
             # conn.commit()
             return False
 
     # Delete a load
-    def delete(self, table, **kwargs):
-        if not self.exist(table):
+    def delete(self, table_name, schema=None, **kwargs):
+        if not self.exist(table_name):
             return False
-
+        table = self.get_table(table_name, schema)
         if not bool(kwargs):
             condition = ''
         else:
@@ -230,7 +234,7 @@ class Mssql:
             for key, value in kwargs.items():
                 cond.append('[{}] = N\'{}\''.format(key, value))
             condition = 'WHERE ' + 'AND '.join(cond)
-        query = 'DELETE FROM [{}].[{}] {}'.format(self.schema, table, condition)
+        query = 'DELETE FROM {} {}'.format(table, condition)
         logger.info('Delete record in {}, {}'.format(table, condition))
         self.run(query)
 
@@ -238,14 +242,15 @@ class Mssql:
     def close(self):
         self.conn.close()
 
-    def log(self, table, start, end, **logs):
+    def log(self, table_name, start, end, schema=None, **logs):
 
         log_columns = '[UID], [Start], [End], [Table], [' + '], ['.join(logs.keys()) + ']'
         log_table = 'Scrapy_Logs'
+        # table = self.get_table(table_name, schema)
 
         if not self.exist(log_table):
             self.create_table('[{}].[{}]'.format(self.schema, log_table), log_columns)
-        log_values = 'N\'' + '\',N\''.join([start, end, table]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
+        log_values = 'N\'' + '\',N\''.join([start, end, table_name]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
         log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(log_table, log_values)
 
         query = 'INSERT INTO [{}].[{}] ({}) VALUES {}'.format(self.schema, log_table, log_columns, log_values)
@@ -253,6 +258,18 @@ class Mssql:
         if self.run(query):
             logger.info('Log current job.')
 
+    # Format table if schema is not default
+    def get_table(self, table_name, schema):
+        if schema:
+            table = '[{}].[{}]'.format(schema, table_name)
+        elif schema is None:
+            table = '[{}].[{}]'.format(self.schema, table_name)
+        else:
+            table = table_name
+        return table
+
+    def set_schema(self, new_schema):
+        self.schema = new_schema
 
 if __name__ == '__main__':
     import keys
