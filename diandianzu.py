@@ -92,15 +92,23 @@ if __name__ == '__main__':
     cities = ['gz', 'sz', 'sh', 'bj', 'cd']
     with db.Mssql(keys.dbconfig) as scrapydb:
 
-        for city in cities:
+        existing_cities = scrapydb.select(LOG_TABLE_NAME, source=SITE, customized={'Timestamp': ">='{}'".format(TODAY), 'City': 'IN ({})'.format('\'' + '\', \''.join(list(cities)) + '\'')})
+        cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
-            one_city, start, end = Diandianzu.run(city=city)  #, from_page=1, to_page=1
+        for city in cities_run:
+            one_city, start, end = timeout(func=Diandianzu.run, time=18000, city=city, from_page=1, to_page=1)  #
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
-
-            # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
 
             scrapydb.upload(one_city.df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
 
+            # one_city, start, end = Diandianzu.run(city=city)  #, from_page=1, to_page=1
+            # logger.info('Start from page {}, stop at page {}.'.format(start, end))
+            #
+            # # one_city_df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}.xlsx'.format(SITE, city, date), sheet_name='{} {}'.format(site, city), index=False)
+            #
+            # scrapydb.upload(one_city.df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
+
     scrapyemail = em.Email()
-    scrapyemail.send(TABLENAME, 'Done', LOG_PATH)
+    scrapyemail.send('[Scrapy]' + TABLENAME, 'Done', LOG_PATH)
     scrapyemail.close()
+    exit(0)

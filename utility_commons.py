@@ -10,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 import logging
 import logging.config
 from pytz import timezone
+from func_timeout import func_timeout, FunctionTimedOut
 
 # path
 SCRIPT_DI = '1'
@@ -17,6 +18,7 @@ SCRIPT_DIR = os.path.dirname(__file__)
 PIC_DIR = SCRIPT_DIR + r'\Vcode'
 FILE_DIR = SCRIPT_DIR + r'\Result'
 LOG_DIR = SCRIPT_DIR + r'\Log'
+LOG_TABLE_NAME = 'Scrapy_Logs'
 
 # time
 TIMESTAMP = str(datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong')))
@@ -80,3 +82,11 @@ def getLogger(site):
         return __log
 
 
+# Kill process if timeout
+def timeout(func, time=3000, **kwargs):
+    try:
+        return func_timeout(time, func, kwargs=kwargs)
+    except FunctionTimedOut as e:
+        logger = logging.getLogger('scrapy')
+        logger.error('Login timeout.\n', e)
+        exit(1)
