@@ -79,6 +79,8 @@ class Tax:
 
             logger.info('Try {} times.'.format(count))
             count += 1
+            if count > 100:
+                return False
 
             vpic = self.get_vcode_pic()
             if vpic:
@@ -219,11 +221,12 @@ if __name__ == '__main__':
         logs = scrapydb.select(LOG_TABLE_NAME, source=SITE, customized={'Timestamp': ">='{}'".format(TODAY), 'City': 'IN ({})'.format(entities)})
         # Exclude entities with logs in same day. If no logs, refresh table
         if not logs.empty:
-            logger.info('Exclude existing entities.')
+            logger.info('Exclude existing entities and continue.')
             access_run = access[-access['Entity_Name'].isin(logs['City'])]
         else:
-            logger.info('Delete existing records.')
+            logger.info('Delete existing records and start a new query.')
             scrapydb.delete(TABLE_NAME)
+            access_run = access
 
     # Core scraping process
     for index, row in access_run.iterrows():
@@ -251,6 +254,6 @@ if __name__ == '__main__':
     scrapyemail_summary = em.Email()
     scrapyemail_summary.send('[Scrapy]' + TABLE_NAME, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
     scrapyemail_summary.close()
-    exit()
+    exit(0)
 
 

@@ -99,7 +99,7 @@ if __name__ == '__main__':
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
         for city in cities_run:
-            one_city, start, end = timeout(func=Haozu.run, time=18000, city=city, from_page=1, to_page=1)  #
+            one_city, start, end = timeout(func=Haozu.run, time=18000, city=city)  #
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             scrapydb.upload(one_city.df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
@@ -111,3 +111,4 @@ if __name__ == '__main__':
     scrapyemail = em.Email()
     scrapyemail.send('[Scrapy] ' + TABLENAME, 'Done', LOG_PATH)
     scrapyemail.close()
+    exit(0)
