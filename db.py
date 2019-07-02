@@ -8,6 +8,7 @@ Created on Thu Jan 24th 2019
 import pymssql
 import pandas as pd
 import logging
+import pyodbc
 
 
 logger = logging.getLogger('scrapy')
@@ -15,15 +16,28 @@ logger = logging.getLogger('scrapy')
 
 class Mssql:
 
-    def __init__(self, config):
+    def __init__(self, config, pkg='pymssql'):
         self.server = config['server']
         self.database = config['database']
         self.schema = config['schema']
-        if ('user' in config.keys()) and ('password' in config.keys()):
-            self.conn = pymssql.connect(server=self.server, database=self.database, user=config['user'], password=config['password'])
+        if pkg == 'pymssql':
+            if ('user' in config.keys()) and ('password' in config.keys()):
+                self.conn = pymssql.connect(server=self.server, database=self.database, user=config['user'], password=config['password'])
+            else:
+                self.conn = pymssql.connect(server=self.server, database=self.database)
+            self.cur = self.conn.cursor()
+        elif pkg == 'pyodbc':
+            if 'driver' in config.keys():
+                self.driver = config['driver']
+            else:
+                self.driver = 'SQL Server Native Client 11.0'
+            if ('user' in config.keys()) and ('password' in config.keys()):
+                self.conn = pyodbc.connect.connect('DRIVER={};SERVER={};DATABASE={};UID={};PWD={}'.format(self.driver, self.server, self.database, config['username'], config['password']))
+            else:
+                self.conn = pyodbc.connect.connect('DRIVER={};SERVER={};DATABASE={};Trusted_Connection=yes;'.format(self.driver, self.server, self.database))
+            self.cur = self.conn.cursor()
         else:
-            self.conn = pymssql.connect(server=self.server, database=self.database)
-        self.cur = self.conn.cursor()
+            logger.error('Wrong package.')
 
     def __enter__(self):
         logger.info('Connect database: {}'.format(self.database))
@@ -146,6 +160,36 @@ class Mssql:
         # df = pd.DataFrame(result)
         return result
 
+    # select function
+    def select_pyodbc(self, table_name, columns='*', schema=None, **kwargs):
+        if columns != '*':
+            columns = ', '.join(columns)
+
+        table = self.get_table(table_name, schema)
+        if not self.exist(table_name):
+            return False
+
+        # Condition build up
+        if not bool(kwargs):
+            condition = ''
+        else:
+            cond = []
+            cust_cond = []
+            if 'customized' in kwargs.keys():
+                customized = kwargs['customized']
+                for key, value in customized.items():
+                    cust_cond.append('[{}] {}'.format(key, value))
+                cust_condition = 'AND '.join(cust_cond)
+                del kwargs['customized']
+            for key, value in kwargs.items():
+                cond.append('[{}] = N\'{}\''.format(key, value))
+
+            condition = 'WHERE ' + ' AND '.join(cond) + (' AND ' + cust_condition) if bool(cust_cond) else ''
+        query = "SELECT {} FROM {} {}".format(columns, table, condition)
+        result = pd.read_sql(query, self.conn)
+        # df = pd.DataFrame(result)
+        return result
+
     # Call stored procedure
     def call_sp(self, sp, output=False, **kwargs):
         try:
@@ -158,6 +202,7 @@ class Mssql:
             query = "EXEC {} {}".format(sp, inputs)
 
             self.cur.execute(query)
+            self.cur.commit()
             logger.info('Execute store procedure: {}'.format(sp))
             # self.conn.commit()
             if output:
@@ -274,10 +319,3 @@ class Mssql:
 if __name__ == '__main__':
     import keys
 
-    d = Mssql(keys.dbconfig_win)
-    # print('exist temp[', d.exist('{}'.format('Scrapy_Irregular_TAX')))
-    # d.run('EXEC CHN.Irregular_Tax_Refresh')
-    # d.close()
-    existing_column = d.select('Scrapy_Irregular_Tax', timestamp='0', customized={'timestamp': '>1'})
-    print(list(existing_column), existing_column)
-    d.close()
