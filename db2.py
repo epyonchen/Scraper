@@ -76,18 +76,18 @@ class Mssql:
             value_default = value_default.format(log_values)
 
         # If table does not exist, create one
-        if not self.exist(table_name):
-            logger.info('Table {} does not exist'.format(table_name))
-            if not self.create_table(table_name=table_name, columns=columns, schema=schema):
-                return False
+        # if not self.exist(table_name):
+        #     logger.info('Table {} does not exist'.format(table_name))
+        #     if not self.create_table(table_name=table_name, columns=columns):
+        #         return False
 
         # Load to temp table
         values = None
         count = 0
         total = 0
 
-        if not self.exist('#Temp_{}'.format(table_name)):
-            self.create_table(table_name='#Temp_{}'.format(table_name), columns=columns, schema=False)
+        # if not self.exist('#Temp_{}'.format(table_name)):
+        self.create_table(table_name='#Temp_{}'.format(table_name), columns=columns, schema=False)
         # Built insert query
         for index, row in df.iterrows():
             # Replace ' as empty
@@ -137,8 +137,8 @@ class Mssql:
 
         table = self.get_table(table_name, schema)
 
-        if not self.exist(table_name):
-            return False
+        # if not self.exist(table_name):
+        #     return False
 
         # Condition build up
         if not bool(kwargs):
@@ -167,8 +167,8 @@ class Mssql:
             columns = ', '.join(columns)
 
         table = self.get_table(table_name, schema)
-        if not self.exist(table_name):
-            return False
+        # if not self.exist(table_name):
+        #     return False
 
         # Condition build up
         if not bool(kwargs):
@@ -271,8 +271,8 @@ class Mssql:
 
     # Delete a load
     def delete(self, table_name, schema=None, **kwargs):
-        if not self.exist(table_name):
-            return False
+        # if not self.exist(table_name):
+        #     return False
         table = self.get_table(table_name, schema)
         if not bool(kwargs):
             condition = ''
@@ -295,8 +295,8 @@ class Mssql:
         log_table = 'Scrapy_Logs'
         # table = self.get_table(table_name, schema)
 
-        if not self.exist(log_table):
-            self.create_table(table_name=self.get_table(schema=schema, table_name=log_table), columns=log_columns)
+        # if not self.exist(log_table):
+        #     self.create_table('[{}].[{}]'.format(self.schema, log_table), log_columns)
         log_values = 'N\'' + '\',N\''.join([start, end, table_name]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
         log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(log_table, log_values)
 

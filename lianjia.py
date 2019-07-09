@@ -58,12 +58,12 @@ class Lianjia(TwoStepScraper):
         # Go through detail list of one item
         for row in detail_list:
             item_detail = dict()
-            item_detail['Property_ID'] = city + '_' + item_id
+            item_detail['Property_ID'] = self.city + '_' + item_id
             item_detail['Property'] = item_name
             item_detail['Title'] = row.find('p', attrs={'class': 'result__li-title'}).text
             item_detail['Price'] = row.find('p', attrs={'class': 'result__li-price'}).find('span').text
             detail_link = row['href']
-            item_detail['Source_ID'] = city + '_' + re.compile(r'\d+').search(detail_link).group(0)
+            item_detail['Source_ID'] = self.city + '_' + re.compile(r'\d+').search(detail_link).group(0)
             # Get item detail
             try:
                 detail_soup = self.search(self.search_base + detail_link)
@@ -87,7 +87,7 @@ if __name__ == '__main__':
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
         for city in cities_run:
-            one_city, start, end = timeout(func=Lianjia.run, time=18000, city=city, from_page=1, to_page=1)  #
+            one_city, start, end = timeout(func=Lianjia.run, time=18000, city=city)  #
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             scrapydb.upload(one_city.df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)

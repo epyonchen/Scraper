@@ -79,6 +79,8 @@ class Tax:
 
             logger.info('Try {} times.'.format(count))
             count += 1
+            if count > 100:
+                return False
 
             vpic = self.get_vcode_pic()
             if vpic:
@@ -213,36 +215,38 @@ if __name__ == '__main__':
 
     logger.info('---------------   Irregular tax ratio query.   ---------------')
 
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with db.Mssql(keys.dbconfig_win) as scrapydb:
         access = scrapydb.select(ACCESS_TABLE_NAME)
         entities = '\'' + '\', \''.join(list(access['Entity_Name'])) + '\''
         logs = scrapydb.select(LOG_TABLE_NAME, source=SITE, customized={'Timestamp': ">='{}'".format(TODAY), 'City': 'IN ({})'.format(entities)})
         # Exclude entities with logs in same day. If no logs, refresh table
         if not logs.empty:
-            logger.info('Exclude existing entities.')
+            logger.info('Exclude existing entities and continue.')
             access_run = access[-access['Entity_Name'].isin(logs['City'])]
         else:
-            logger.info('Delete existing records.')
+            logger.info('Delete existing records and start a new query.')
             scrapydb.delete(TABLE_NAME)
+            access_run = access
 
     # Core scraping process
     for index, row in access_run.iterrows():
-        scrapydb = db.Mssql(keys.dbconfig)
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
         result = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # result = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # Upload to database
+        scrapydb = db.Mssql(keys.dbconfig_win)
         scrapydb.upload(df=result, table_name=TABLE_NAME, new_id=False, dedup=False, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP, source=SITE, city=row['Entity_Name'])
         scrapydb.close()
 
     # Ensure failure of scraping process do not interrupt email and sp execution
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with db.Mssql(keys.dbconfig_win) as scrapydb:
         for index, row in access.iterrows():
             # Update Irregular_Ind by executing stored procedure
             scrapydb.call_sp('CHN.Irregular_Tax_Refresh2', table_name=TABLE_NAME)
             # Get irregular record
-            att = scrapydb.call_sp('CHN.Irregular_Tax_ETL2', True, table_name=TABLE_NAME, entity_name=row['Entity_Name'])
+            att = scrapydb.call_sp(sp='CHN.Irregular_Tax_ETL2', output=True, table_name=TABLE_NAME, entity_name=row['Entity_Name'])
             numeric_col = ['金额', '单价', '税率', '税额']
+
             if att is not False:
                 att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
             _send_email(row['Entity_Name'], row['Email_List'], att)
@@ -251,6 +255,6 @@ if __name__ == '__main__':
     scrapyemail_summary = em.Email()
     scrapyemail_summary.send('[Scrapy]' + TABLE_NAME, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
     scrapyemail_summary.close()
-    exit()
+    exit(0)
 
 
