@@ -9,7 +9,7 @@ import pymssql
 import pandas as pd
 import logging
 import pyodbc
-
+from utility_commons import LOG_TABLE_NAME
 
 logger = logging.getLogger('scrapy')
 
@@ -292,15 +292,13 @@ class Mssql:
     def log(self, table_name, start, end, schema=None, **logs):
 
         log_columns = '[UID], [Start], [End], [Table], [' + '], ['.join(logs.keys()) + ']'
-        log_table = 'Scrapy_Logs'
-        # table = self.get_table(table_name, schema)
 
-        if not self.exist(log_table):
-            self.create_table(table_name=self.get_table(schema=schema, table_name=log_table), columns=log_columns)
+        if not self.exist(LOG_TABLE_NAME):
+            self.create_table(schema=schema, table_name=LOG_TABLE_NAME, columns=log_columns)
         log_values = 'N\'' + '\',N\''.join([start, end, table_name]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
-        log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(log_table, log_values)
+        log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(LOG_TABLE_NAME, log_values)
 
-        query = 'INSERT INTO {} ({}) VALUES {}'.format(self.get_table(schema=schema, table_name=log_table), log_columns, log_values)
+        query = 'INSERT INTO {} ({}) VALUES {}'.format(self.get_table(schema=schema, table_name=LOG_TABLE_NAME), log_columns, log_values)
 
         if self.run(query):
             logger.info('Log current job.')
