@@ -8,7 +8,7 @@ Created on Thur May 11th 2019
 import keys
 import re
 import pandas as pd
-import db
+import db2 as db
 import pagemanipulate as pm
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

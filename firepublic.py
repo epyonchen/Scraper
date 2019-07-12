@@ -20,7 +20,7 @@ TABLENAME = 'Scrapy_FirePublic'
 LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
 logger = getLogger(SITE)
-
+total_page = 0
 
 class FirePublic:
 
@@ -95,6 +95,7 @@ class FirePublic:
         # Get column names and total page
         first_soup = fp.search()
         reg_num = re.compile(r'\d+')
+        global total_page
         total_page = reg_num.findall(first_soup.find('div', attrs={'id': 'ctl00_MainContent_AspNetPager1'}).find('td').text)
         if total_page:
             logger.info('Total {} records, {} pages.'.format(total_page[0], total_page[1]))
@@ -135,7 +136,7 @@ class FirePublic:
             logger.info('Page {} done.'.format(i))
             i += 1
         start_page = from_page
-        end_page = i - 1
+        end_page = i
         if not df.empty:
             df['Source_ID'] = df['文书编号']
             df['办结时间'] = pd.to_datetime(df['办结时间'], format='%Y-%m-%d')
@@ -143,14 +144,17 @@ class FirePublic:
 
 
 if __name__ == '__main__':
-
     with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
-        df, start, end = FirePublic.run(from_page=3931, to_page=4000)  # 3923
+        pre_page = scrapydb.select(LOG_TABLE_NAME, column_name=['End'], source='FirePublic')
+        pre_page = pre_page['End'].astype(int).max()
+        df, start, end = FirePublic.run(from_page=pre_page)
+
         if not df.empty:
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
-            # df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_{}_{}_{}.xlsx'.format(site, date, start, end), index=False,
-            #             header=True, sheet_name=site)
             scrapydb.upload(df, TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
         else:
             logger.info('Fail this run at page {}.'.format(end))
-        scrapyemail.send(TABLENAME, 'Done', LOG_PATH)
+        if end < total_page:
+            exit(1)
+        else:
+            scrapyemail.send(TABLENAME, 'Done', LOG_PATH)
