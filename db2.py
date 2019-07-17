@@ -65,13 +65,12 @@ class Mssql:
         column_name = list(df)
         value_default = '({})'
 
+        # Format column names
         if new_id:
             column_name = ['UID'] + column_name
-            columns = self.get_columns(column_name)
             value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID())'.format(table_name) + ',{}')
         if bool(logs):
             column_name = column_name + list(logs.keys())
-            columns = self.get_columns(column_name)
             log_values = '{} ,N\'' + '\',N\''.join(logs.values()) + '\''
             value_default = value_default.format(log_values)
 
@@ -103,7 +102,7 @@ class Mssql:
             count += 1
             total += 1
             if (count % 500 == 0) or (total >= len(df.index)):
-                temp_query = 'INSERT INTO #Temp_{} ({}) VALUES {}'.format(table_name, columns, values)
+                temp_query = 'INSERT INTO #Temp_{} ({}) VALUES {}'.format(table_name, self.get_columns(column_name), values)
                 logger.info('Insert {} rows'.format(total))
                 if not self.run(temp_query):
 
@@ -119,7 +118,7 @@ class Mssql:
 
         # Columns cross-check
 
-        existing_columns = list(self.select(table_name=table_name, source=0))
+        existing_columns = list(self.select(table_name=table_name, column_name='top 0 *'))
         insert_columns = list(set(existing_columns) & set(column_name))
         insert_columns = self.get_columns(insert_columns) # '[' + '], ['.join(insert_columns) + ']'
         insert_query = 'INSERT INTO {} ({}) (SELECT {} FROM #Temp_{} {})'.format(table, insert_columns, insert_columns, table_name, where_cond)
@@ -286,14 +285,13 @@ class Mssql:
 
     def log(self, table_name, start, end, schema=None, **logs):
 
-        log_columns = self.get_columns(['UID', 'Start', 'End', 'Table'] + list(logs.keys())) #'[UID], [Start], [End], [Table], [' + '], ['.join(logs.keys()) + ']'
-
+        log_column_name = ['UID', 'Start', 'End', 'Table'] + list(logs.keys()) #'[UID], [Start], [End], [Table], [' + '], ['.join(logs.keys()) + ']'
         # if not self.exist(LOG_TABLE_NAME):
-        self.create_table(schema=schema, table_name=LOG_TABLE_NAME, column_name=log_columns)
+        #     self.create_table(schema=schema, table_name=LOG_TABLE_NAME, column_name=log_column_name)
         log_values = 'N\'' + '\',N\''.join([start, end, table_name]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
         log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(LOG_TABLE_NAME, log_values)
 
-        query = 'INSERT INTO {} ({}) VALUES {}'.format(self.get_table(schema=schema, table_name=LOG_TABLE_NAME), log_columns, log_values)
+        query = 'INSERT INTO {} ({}) VALUES {}'.format(self.get_table(schema=schema, table_name=LOG_TABLE_NAME), self.get_columns(column_name=log_column_name), log_values)
 
         if self.run(query):
             logger.info('Log current job.')
@@ -315,8 +313,7 @@ class Mssql:
         elif isinstance(column_name, list):
             return '[' + ''.join(column_name) + ']'
         else:
-            logger.error('Invalid column name.')
-            return False
+            return column_name
 
     def set_schema(self, new_schema):
         self.schema = new_schema

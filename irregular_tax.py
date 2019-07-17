@@ -23,11 +23,13 @@ from utility_commons import *
 
 SCREENSHOT_PATH = PIC_DIR + r'\screen_shot.png'
 VCODE_PATH = PIC_DIR + r'\vcode.png'
-FILE_PATH = FILE_DIR + r'\Irregular_Tax.xls'
+TAX_DETAIL_PATH = FILE_DIR + r'\Irregular_Tax.xls'
+TAX_PATH = FILE_DIR + r'\Irregular_Tax_Summary.xls'
 ATTACHMENT_PATH = FILE_DIR + r'\{}_异常发票清单_{}.xlsx'
 
 SITE = 'Irregular_Tax'
-TABLE_NAME = 'Scrapy_' + SITE
+TAX_DETAIL_TABLE = 'Scrapy_' + SITE
+TAX_TABLE = 'Scrapy_' + SITE + '_Summary'
 ACCESS_TABLE_NAME = 'Scrapy_Irregular_Tax_Access'
 LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
@@ -135,26 +137,33 @@ class Tax:
                 self.renew()
 
     # Export excel with tax records
-    def get(self, startdate=PRE3MONTH, enddate=TIMESTAMP, valid=''):
+    def get(self, startdate=PRE3MONTH, enddate=TODAY, valid=''):
         logger.info('Query start date: {}, end date: {}, valid: {}'.format(str(startdate), str(enddate), str(valid)))
-        query = self.base + 'cxtj/getInvInfoMx.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&xsdjh='.format(str(startdate), str(enddate), str(valid))
-        self.check_last_query()
+        tax_query = self.base +  'cxtj/getInvInfo.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz=&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&xsdjh=&bszt='.format(str(startdate), str(enddate))
+        tax_detail_query = self.base + 'cxtj/getInvInfoMx.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&xsdjh='.format(str(startdate), str(enddate), str(valid))
+        tax_flag = self.download_file(tax_query, TAX_PATH)
+        tax_detail_flag = self.download_file(tax_detail_query, TAX_DETAIL_PATH)
+        return (tax_flag and tax_detail_flag)
+
+    # Delete previous query file and download a new one
+    def download_file(self, query, file_path):
+        self.check_last_query(file_path)
         try:
             self.update_cookies()
             response = self.session.get(query)
-            with open(FILE_PATH, 'wb') as writer:
+            with open(file_path, 'wb') as writer:
                 writer.write(response.content)
-            logger.info('Download file.')
+            logger.info('Download file {}.'.format(file_path))
             return True
         except Exception as e:
             logger.exception(e)
             return False
 
     # Check if file from previous exists, and delete it
-    def check_last_query(self):
-        if os.path.isfile(FILE_PATH):
-            logger.info('Delete previous query result.')
-            os.remove(FILE_PATH)
+    def check_last_query(self, path):
+        if os.path.isfile(path):
+            logger.info('Delete previous {}.'.format(path))
+            os.remove(path)
 
     def update_cookies(self):
         self.cookies = self.web.get_requests_cookies()
@@ -183,12 +192,18 @@ class Tax:
                 logger.info('Restart job, Entity {} Server {}'.format(entity, server))
                 t.renew()
                 continue
-        tax_df = pd.read_excel(FILE_PATH, sheet_name='商品信息', dtype=str)
+
+        tax_df = pd.read_excel(TAX_PATH, sheet_name='发票信息', dtype=str)
         tax_df = tax_df[tax_df['序号'] != 'nan']
         tax_df['企业税号'] = entity
         tax_df['服务器号'] = server
 
-        return tax_df
+        tax_detail_df = pd.read_excel(TAX_DETAIL_PATH, sheet_name='商品信息', dtype=str)
+        tax_detail_df = tax_detail_df[tax_detail_df['序号'] != 'nan']
+        tax_detail_df['企业税号'] = entity
+        tax_detail_df['服务器号'] = server
+
+        return tax_df, tax_detail_df
 
 
 def _send_email(entity, receiver, attachment):
@@ -225,35 +240,38 @@ if __name__ == '__main__':
             access_run = access[-access['Entity_Name'].isin(logs['City'])]
         else:
             logger.info('Delete existing records and start a new query.')
-            scrapydb.delete(TABLE_NAME)
+            scrapydb.delete(table_name=TAX_TABLE)
+            scrapydb.delete(table_name=TAX_DETAIL_TABLE)
             access_run = access
 
     # Core scraping process
     for index, row in access_run.iterrows():
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
-        result = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
+        tax_df, tax_detail_df = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # result = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # Upload to database
         scrapydb = db.Mssql(keys.dbconfig_win)
-        scrapydb.upload(df=result, table_name=TABLE_NAME, new_id=False, dedup=False, start=PRE3MONTH, end=TODAY,  timestamp=TIMESTAMP, source=SITE, city=row['Entity_Name'])
+        scrapydb.upload(df=tax_df, table_name=TAX_TABLE, new_id=False, dedup=False)
+        scrapydb.upload(df=tax_detail_df, table_name=TAX_DETAIL_TABLE, new_id=False, dedup=False, start=PRE3MONTH, end=TODAY, timestamp=TIMESTAMP, source=SITE, city=row['Entity_Name'])
         scrapydb.close()
 
     # Ensure failure of scraping process do not interrupt email and sp execution
     with db.Mssql(keys.dbconfig_win) as scrapydb:
+        # Update Irregular_Ind by executing stored procedure
+        scrapydb.call_sp('CHN.Irregular_Tax_Refresh3', table_name=TAX_DETAIL_TABLE, table_name2=TAX_TABLE)
         for index, row in access.iterrows():
-            # Update Irregular_Ind by executing stored procedure
-            scrapydb.call_sp('CHN.Irregular_Tax_Refresh2', table_name=TABLE_NAME)
             # Get irregular record
-            att = scrapydb.call_sp(sp='CHN.Irregular_Tax_ETL2', output=True, table_name=TABLE_NAME, entity_name=row['Entity_Name'])
+            att = scrapydb.call_sp(sp='CHN.Irregular_Tax_ETL3', output=True, table_name=TAX_DETAIL_TABLE, entity_name=row['Entity_Name'])
             numeric_col = ['金额', '单价', '税率', '税额']
 
             if att is not False:
                 att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
-            _send_email(row['Entity_Name'], row['Email_List'], att)
+
+            _send_email(entity=row['Entity_Name'], receiver=row['Email_List'], attachment=att)
 
     # Send email summary
     scrapyemail_summary = em.Email()
-    scrapyemail_summary.send('[Scrapy]' + TABLE_NAME, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
+    scrapyemail_summary.send('[Scrapy]' + SITE, 'Done', LOG_PATH, receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
     scrapyemail_summary.close()
     exit(0)
 
