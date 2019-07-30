@@ -71,11 +71,11 @@ class MyTopHome(TwoStepScraper):
 if __name__ == '__main__':
 
     cities = ['gz']
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
 
         one_city_df, start, end = MyTopHome.run(city='gz', from_page=0, step=20)
-        scrapydb.upload(one_city_df, TABLENAME, start=start, end=str(int(end) % 20), timestamp=TIMESTAMP, source=SITE, city='gz')
+        scrapydb.upload(df=one_city_df, table_name=TABLENAME, schema='CHN_MKT', start=start, end=str(int(end) % 20), timestamp=TIMESTAMP, source=SITE, city='gz')
 
     scrapyemail = em.Email()
-    scrapyemail.send(TABLENAME, 'Done', LOG_PATH)
+    scrapyemail.send(subject='[Scrapy] ' + TABLENAME, content='Done', attachment=LOG_PATH)
     scrapyemail.close()
