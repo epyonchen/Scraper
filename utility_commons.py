@@ -85,8 +85,8 @@ def getLogger(site):
 # Kill process if timeout
 def timeout(func, time=3000, **kwargs):
     try:
-        return func_timeout(time, func, kwargs=kwargs)
+        return func_timeout(timeout=time, func=func, kwargs=kwargs)
     except FunctionTimedOut as e:
         logger = logging.getLogger('scrapy')
-        logger.error('Login timeout.\n', e)
+        logger.error(e)
         exit(1)

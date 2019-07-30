@@ -319,6 +319,6 @@ class Mssql:
     def set_schema(self, new_schema):
         self.schema = new_schema
 
+
 if __name__ == '__main__':
     import keys
-

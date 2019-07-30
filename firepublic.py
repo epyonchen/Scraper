@@ -144,17 +144,17 @@ class FirePublic:
 
 
 if __name__ == '__main__':
-    with db.Mssql(keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
-        pre_page = scrapydb.select(LOG_TABLE_NAME, column_name=['End'], source='FirePublic')
+    with db.Mssql(config=keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
+        pre_page = scrapydb.select(table_name=LOG_TABLE_NAME, column_name=['End'], source='FirePublic')
         pre_page = pre_page['End'].astype(int).max()
         df, start, end = FirePublic.run(from_page=pre_page)
 
         if not df.empty:
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
-            scrapydb.upload(df, TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
+            scrapydb.upload(df=df, table_name=TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
         else:
             logger.info('Fail this run at page {}.'.format(end))
         if end < total_page:
             exit(1)
         else:
-            scrapyemail.send(TABLENAME, 'Done', LOG_PATH)
+            scrapyemail.send(subject='[Scrapy] ' + TABLENAME, content='Done', attachment=LOG_PATH)

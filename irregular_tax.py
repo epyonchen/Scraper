@@ -230,7 +230,7 @@ if __name__ == '__main__':
 
     logger.info('---------------   Irregular tax ratio query.   ---------------')
 
-    with db.Mssql(keys.dbconfig_win) as scrapydb:
+    with db.Mssql(keys.dbconfig) as scrapydb:
         access = scrapydb.select(ACCESS_TABLE_NAME)
         entities = '\'' + '\', \''.join(list(access['Entity_Name'])) + '\''
         logs = scrapydb.select(LOG_TABLE_NAME, source=SITE, customized={'Timestamp': ">='{}'".format(TODAY), 'City': 'IN ({})'.format(entities)})
@@ -250,18 +250,18 @@ if __name__ == '__main__':
         tax_df, tax_detail_df = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # result = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # Upload to database
-        scrapydb = db.Mssql(keys.dbconfig_win)
+        scrapydb = db.Mssql(keys.dbconfig)
         scrapydb.upload(df=tax_df, table_name=TAX_TABLE, new_id=False, dedup=False)
         scrapydb.upload(df=tax_detail_df, table_name=TAX_DETAIL_TABLE, new_id=False, dedup=False, start=PRE3MONTH, end=TODAY, timestamp=TIMESTAMP, source=SITE, city=row['Entity_Name'])
         scrapydb.close()
 
     # Ensure failure of scraping process do not interrupt email and sp execution
-    with db.Mssql(keys.dbconfig_win) as scrapydb:
+    with db.Mssql(keys.dbconfig) as scrapydb:
         # Update Irregular_Ind by executing stored procedure
-        scrapydb.call_sp('CHN.Irregular_Tax_Refresh3', table_name=TAX_DETAIL_TABLE, table_name2=TAX_TABLE)
+        scrapydb.call_sp('CHN.Irregular_Tax_Refresh', table_name=TAX_DETAIL_TABLE, table_name2=TAX_TABLE)
         for index, row in access.iterrows():
             # Get irregular record
-            att = scrapydb.call_sp(sp='CHN.Irregular_Tax_ETL3', output=True, table_name=TAX_DETAIL_TABLE, entity_name=row['Entity_Name'])
+            att = scrapydb.call_sp(sp='CHN.Irregular_Tax_ETL', output=True, table_name=TAX_DETAIL_TABLE, entity_name=row['Entity_Name'])
             numeric_col = ['金额', '单价', '税率', '税额']
 
             if att is not False:
