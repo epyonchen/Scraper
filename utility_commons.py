@@ -88,5 +88,5 @@ def timeout(func, time=3000, **kwargs):
         return func_timeout(timeout=time, func=func, kwargs=kwargs)
     except FunctionTimedOut as e:
         logger = logging.getLogger('scrapy')
-        logger.error(e)
+        logger.error('Timeout:\n%s', e)
         exit(1)
