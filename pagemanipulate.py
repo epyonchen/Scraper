@@ -59,8 +59,12 @@ class Page:
 
     def get(self, url):
         self.base = url
-        self.driver.get(self.base)
-        self.soup = self.driver.page_source
+        try:
+            self.driver.get(self.base)
+            self.soup = self.driver.page_source
+        except Exception as e:
+            logger.error(e)
+            exit(1)
 
     def click(self, path):
         while True:
