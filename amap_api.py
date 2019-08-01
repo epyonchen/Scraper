@@ -31,7 +31,7 @@ class Amap:
         time.sleep(random.randint(1, 2))
 
         if ('status' not in response.keys()) or (response['status'] != '1'):
-            return None
+            return False
         else:
             one_call = response['pois']
             # for record in response['pois']:

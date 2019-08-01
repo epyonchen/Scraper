@@ -34,7 +34,7 @@ class Email:
             receivers_list = receivers.split(';')
         else:
             logger.error('Receivers must be string value.')
-            return None
+            return False
 
         if not self.check_connection():
             self.reconnect()
@@ -45,7 +45,7 @@ class Email:
             return True
         except Exception as e:
             logger.error(e)
-            return None
+            return False
 
     def reconnect(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
         logger.info('Reconnect mailing server')

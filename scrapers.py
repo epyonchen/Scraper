@@ -25,7 +25,7 @@ class TwoStepScraper:
         self.switch = True
 
     # Query one link
-    def search(self, url=None, encoding=None):
+    def search(self, url=None, encoding=None, headers=None):
         if not url:
             logger.exception('Search url missing.')
             return False
@@ -74,7 +74,7 @@ class TwoStepScraper:
 
         if city is None:
             logger.exception('City is missing.')
-            return None, str(from_page), str(page)
+            return False, str(from_page), str(page)
 
         logger.info('Start querying {}.'.format(city))
 
