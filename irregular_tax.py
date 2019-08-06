@@ -16,8 +16,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image
 import baidu_api
 import requests
-import time
-from func_timeout import func_timeout, FunctionTimedOut
 import utility_email as em
 from utility_commons import *
 
@@ -34,6 +32,7 @@ ACCESS_TABLE_NAME = 'Scrapy_Irregular_Tax_Access'
 LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 
 logger = getLogger(SITE)
+count = 0
 
 
 class Tax:
@@ -76,12 +75,12 @@ class Tax:
 
     # Not return validation code until get valid one
     def get_vcode(self):
-        count = 0
+        global count
         while True:
 
             logger.info('Try {} times.'.format(count))
             count += 1
-            if count > 100:
+            if count % 100 == 0:
                 return False
 
             vpic = self.get_vcode_pic()
@@ -101,7 +100,7 @@ class Tax:
                     try:
                         self.web.driver.find_element_by_xpath('//*[@id="crcpic"]').click()
                     except Exception as e:
-                        logger.exception('Unable to refresh validation code pic.')
+                        logger.exception('Unable to refresh validation code pic.\n{}'.format(e))
                         return False
             else:
                 return False
@@ -118,7 +117,7 @@ class Tax:
                     self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[5]/td[1]/input', value=vcode)
                     self.web.click(path='//*[@id="loginbt"]')
                 except Exception as e:
-                    logger.exception('Unable to input username/password/validation code.')
+                    logger.exception('Unable to input username/password/validation code.\n{}'.format(e))
                     self.renew()
                     continue
 
@@ -132,7 +131,7 @@ class Tax:
                         )
                     finally:
                         logger.info('Sucessfully login.')
-                        break
+                        return True
             else:
                 self.renew()
 
@@ -179,20 +178,21 @@ class Tax:
         self.cookies = requests.cookies.RequestsCookieJar()
 
     @classmethod
-    def run(cls, entity, server, link, username, password, time_run=2000):
+    def run(cls, entity, server, link, username, password, time=3600):
         t = cls(link, username, password)
 
         # Return false when function takes too much time
-        def _timeout(func, time_limit=time_run, **kwargs):
+        def _timeout(func, timeout=time, **kwargs):
             try:
-                return func_timeout(timeout=time_limit, func=func, kwargs=kwargs)
+                result = func_timeout(timeout=timeout, func=func, kwargs=kwargs)
+                return result
             except FunctionTimedOut as e:
                 logger.error('Timeout:\n%s', e)
                 return False
 
         while True:
             # Exit with error when login takes too much time
-            if not _timeout(func=t.login(), time=3600):
+            if not _timeout(func=t.login):
                 exit(1)
             success = t.get()
             if success:
