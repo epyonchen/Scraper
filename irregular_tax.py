@@ -179,11 +179,21 @@ class Tax:
         self.cookies = requests.cookies.RequestsCookieJar()
 
     @classmethod
-    def run(cls, entity, server, link, username, password):
+    def run(cls, entity, server, link, username, password, time_run=2000):
         t = cls(link, username, password)
 
+        # Return false when function takes too much time
+        def _timeout(func, time_limit=time_run, **kwargs):
+            try:
+                return func_timeout(timeout=time_limit, func=func, kwargs=kwargs)
+            except FunctionTimedOut as e:
+                logger.error('Timeout:\n%s', e)
+                return False
+
         while True:
-            t.login()
+            # Exit with error when login takes too much time
+            if not _timeout(func=t.login(), time=3600):
+                exit(1)
             success = t.get()
             if success:
                 t.web.close()
@@ -247,8 +257,8 @@ if __name__ == '__main__':
     # Core scraping process
     for index, row in access_run.iterrows():
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
-        tax_df, tax_detail_df = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
-        # result = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
+        # tax_df, tax_detail_df = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
+        tax_df, tax_detail_df = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # Upload to database
         scrapydb = db.Mssql(keys.dbconfig)
         scrapydb.upload(df=tax_df, table_name=TAX_TABLE, new_id=False, dedup=False)
