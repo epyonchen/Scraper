@@ -21,10 +21,11 @@ LOG_DIR = SCRIPT_DIR + r'\Log'
 LOG_TABLE_NAME = 'Scrapy_Logs'
 
 # time
-TIMESTAMP = str(datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong')))
-TODAY = date.today().strftime('%Y-%m-%d')
-YESTERDAY = (date.today() - relativedelta(days=1)).strftime('%Y-%m-%d')
-PRE3MONTH = (date.today() - relativedelta(months=4)).strftime('%Y-%m-%d')
+_NOW = datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong'))
+TIMESTAMP = str(_NOW)
+TODAY = _NOW.strftime('%Y-%m-%d')
+YESTERDAY = (_NOW - relativedelta(days=1)).strftime('%Y-%m-%d')
+PRE3MONTH = (_NOW - relativedelta(months=3)).strftime('%Y-%m-%d')
 
 # email
 MAIL_HOST = 'outlook.office365.com'
