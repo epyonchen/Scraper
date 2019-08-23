@@ -68,18 +68,9 @@ class Amap:
 
 if __name__ == '__main__':
 
-    date = str(datetime.date.today())
     df = pd.DataFrame()
     amp = Amap()
-
-    # property_list = pd.read_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\国际学校.xlsx', sheet_name='高中', sort=False)
-
-    # keywords = ['鹿角巷', 'gaga鲜语', '安缇安蝴蝶饼', '卅卅红油串串', '乐刻健身', '披萨工坊', '瑞幸咖啡', 'luckin coffee', '沃尔玛', '美吉姆', '星巴克', 'Starbucks', '斯凯奇', '全家便利店', 'FamilyMart',
-    #             '天虹百货', '盒马鲜生', 'FILA', '阿迪达斯', 'ADIDAS', '喜茶', 'Teenie Weenie', '古德菲力', '7fresh', 'Innisfree', 'Pandora', '豪客来', 'KOI', '7-11', '7-ELEVEN', '大家乐', '乐凯撒', '马克华菲',
-    #             '钻石世家', 'OCE', '蛙来哒']
-
-    # 广州, 深圳, 东莞, 佛山, 惠州, 江门, 中山, 珠海, 肇庆
-    cities = ['440105'] #440100
+    input = pd.read_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\GZ_Subway.xlsx', sort=False)
 
     # for city in cities:
     #     for key in keywords:
@@ -95,39 +86,40 @@ if __name__ == '__main__':
     #                 break
     count = 0
 
-    # for index, property in property_list.iterrows():
-    #
-    #     keyword = str(property['学校名称'])
-    #     one_call = amp.search_location_api_call(keys.amap[0], keywords=keyword, city=cities[0], citylimit=True,  offset='1', output='JSON') #  building='B0FFH11BOI',types='190100',
-    #     # print(response)
-    #     # one_call = amp.get_api_call(response)
-    #     if one_call is None:
-    #         one_call = dict()
-    #
-    #     # one_call['Source_ID'] = property['Source_ID']
-    #
-    #     df = df.append(one_call, ignore_index=True)
-    #
-    #     # count += 1
-    #     # if count >= 10:
-    #     #     break
-
-    page = 1
-    while page > 0:
-        one_call = amp.search_location_api_call(amap_key=keys.amap[0], types='160100', city=cities[0], citylimit=True, offset='20', output='JSON', page=page)  # building='B0FFH11BOI',types='190100',
-        if bool(one_call):
-            print(page)
-            df = df.append(one_call, ignore_index=True)
-            page += 1
+    for index, station in input.iterrows():
+        keyword = str(station['地铁站名']) + '(地铁站)'
+        print(index, keyword)
+        city = str(station['Code'])
+        one_call = amp.search_location_api_call(keys.amap[0], keywords=keyword, city=city, citylimit=True,  offset='1', output='JSON') #  building='B0FFH11BOI',types='190100',
+        if not one_call:
+            one_call = dict()
         else:
-            break
+            one_call = one_call[0]
+
+        one_call.update(station.to_dict())
+        # one_call['Source_ID'] = property['Source_ID']
+
+        df = df.append(one_call, ignore_index=True)
+
+        # count += 1
+        # if count >= 10:
+        #     break
+
+    # page = 1
+    # while page > 0:
+    #     one_call = amp.search_location_api_call(amap_key=keys.amap[0], types='160100', city=cities[0], citylimit=True, offset='20', output='JSON', page=page)  # building='B0FFH11BOI',types='190100',
+    #     if bool(one_call):
+    #         print(page)
+    #         df = df.append(one_call, ignore_index=True)
+    #         page += 1
+    #     else:
+    #         break
 
     df[['lat', 'lon']] = df['location'].str.split(',', expand=True)
     mapit = pd.DataFrame(df.apply(lambda x: amp.geocode_convert(float(x['lon']), float(x['lat'])), axis=1).values.tolist(), columns=['MapitLon', 'MapitLat'])
     df = pd.concat([df, mapit], axis=1)
     df['Timestamp'] = TIMESTAMP
-    site = 'Bank'
-    # df = df.drop_duplicates(subset=['id'], keep='first')
+    site = 'Subway'
     df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_Amap_{}.xlsx'.format(site, TODAY), index=False, header=True, columns=list(df), sheet_name='Amap Api')
 
 
