@@ -10,7 +10,7 @@ import re
 logger = logging.getLogger('scrapy')
 
 class Email:
-    def __init__(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
+    def __init__(self, username=keys.email['user'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
         self.smtpObj = smtplib.SMTP()
         self.smtpObj.connect(host, port)
         self.smtpObj.starttls()
@@ -47,7 +47,7 @@ class Email:
             logger.error(e)
             return False
 
-    def reconnect(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
+    def reconnect(self, username=keys.email['user'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
         logger.info('Reconnect mailing server')
         self.smtpObj = smtplib.SMTP()
         self.smtpObj.connect(host, port)
