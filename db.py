@@ -69,7 +69,7 @@ class Mssql:
         if new_id:
             column_name = ['UID'] + column_name
             value_default = value_default.format('\'{}_\' +  CONVERT(NVARCHAR(100), NEWID())'.format(table_name) + ',{}')
-        if bool(logs):
+        if logs:
             column_name = column_name + list(logs.keys())
             log_values = '{} ,N\'' + '\',N\''.join(logs.values()) + '\''
             value_default = value_default.format(log_values)
@@ -125,7 +125,7 @@ class Mssql:
 
         drop_temp = 'DROP TABLE #Temp_{}'.format(table_name)
         if self.run(insert_query):
-            if start <= end:
+            if start <= end and logs:
                 self.log(table_name, start, end, **logs)
         self.run(drop_temp)
 
