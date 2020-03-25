@@ -5,13 +5,15 @@ Created on Sun June 24th 2018
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-import pandas as pd
 import keys
 import requests
 import time
 import random
+import os
+import pandas as pd
 import gecodeconvert as gc
 from utility_commons import *
+
 
 class Amap:
 
@@ -27,38 +29,21 @@ class Amap:
         for key, value in kwargs.items():
             query = query + '&' + key + '=' + str(value)
         query = query + '&key=' + amap_key
-        response = requests.get(query).json()
+
+        try:
+            response = requests.get(query).json()
+
+        except Exception as e:
+            logging.error(e)
+            return None
+
         time.sleep(random.randint(1, 2))
 
         if ('status' not in response.keys()) or (response['status'] != '1'):
-            return False
+            return None
         else:
             one_call = response['pois']
-            # for record in response['pois']:
-            #             #     mapit = self.geocode_convert(float(record['location'].split(',')[0]), float(record['location'].split(',')[1]))
-            #             #     record['MapITlat'] = mapit[1]
-            #             #     record['MapITlon'] = mapit[0]
-            #             #
-            #             #     one_call = one_call.append(record, ignore_index=True)
-            #     print(record)
             return one_call
-
-        # return response
-
-
-    # def get_api_call(self, api_response):
-    #     one_call = pd.DataFrame()
-    #
-    #     if api_response is None or ('status' not in api_response.keys()) or (api_response['status'] != '1'):
-    #         return None
-    #     else:
-    #         for store in api_response['pois']:
-    #             mapit = self.geocode_convert(float(store['location'].split(',')[0]), float(store['location'].split(',')[1]))
-    #             store['MapITlat'] = mapit[1]
-    #             store['MapITlon'] = mapit[0]
-    #             one_call = one_call.append(store, ignore_index=True)
-    #
-    #         return one_call
 
     # Convert from Baidu to
     def geocode_convert(self, lat, lon):
@@ -70,56 +55,58 @@ if __name__ == '__main__':
 
     df = pd.DataFrame()
     amp = Amap()
-    input = pd.read_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\GZ_Subway.xlsx', sort=False)
 
+    input = pd.read_excel(FILE_DIR + r'\Guangzhou Project ID.xlsx', sort=False)
+    city = '440100'
+    count = 0
+    # count += 1
+    # if count >= 10:
+    #     break
+    # keywords = input['项目']
     # for city in cities:
     #     for key in keywords:
     #         page = 1
     #         while page > 0:
-    #             response = search_location_api_call(keys.amap, keywords=key, types='120000', offset='1', output='JSON', page=page) #  building='B0FFH11BOI',
-    #             one_call = get_api_call(response)
+    #             one_call = amp.search_location_api_call(keys.amap, keywords=key, types='120000', offset='1', output='JSON', page=page) #  building='B0FFH11BOI',
+    #
     #             if one_call is not None:
     #                 one_call['Keyword'] = key
     #                 df = df.append(one_call)
     #                 page += 1
     #             else:
     #                 break
-    count = 0
 
-    for index, station in input.iterrows():
-        keyword = str(station['地铁站名']) + '(地铁站)'
-        print(index, keyword)
-        city = str(station['Code'])
+    for index, row in input.iterrows():
+        keyword = str(row['项目名称'])
+        print(keyword)
         one_call = amp.search_location_api_call(keys.amap[0], keywords=keyword, city=city, citylimit=True,  offset='1', output='JSON') #  building='B0FFH11BOI',types='190100',
         if not one_call:
             one_call = dict()
         else:
             one_call = one_call[0]
-
-        one_call.update(station.to_dict())
-        # one_call['Source_ID'] = property['Source_ID']
-
+        # print(one_call)
+        one_call.update(row.to_dict())
         df = df.append(one_call, ignore_index=True)
 
-        # count += 1
-        # if count >= 10:
-        #     break
 
     # page = 1
+    # polygon = '113.249735,23.106962|113.250146,23.106072|113.279243,23.11408|113.287617,23.110736|113.288253,23.112808|113.279949,23.115966|113.266173,23.11496|113.249735,23.106962'
     # while page > 0:
-    #     one_call = amp.search_location_api_call(amap_key=keys.amap[0], types='160100', city=cities[0], citylimit=True, offset='20', output='JSON', page=page)  # building='B0FFH11BOI',types='190100',
+    #     one_call = amp.search_location_api_call(polygon=polygon, amap_key=keys.amap[0], types='050000', city=city, citylimit=True, offset='20', output='JSON', page=page)  # building='B0FFH11BOI',types='190100',
     #     if bool(one_call):
     #         print(page)
     #         df = df.append(one_call, ignore_index=True)
     #         page += 1
     #     else:
     #         break
+    if 'location' in list(df):
+        df[['lat', 'lon']] = df['location'].str.split(',', expand=True)
+        mapit = pd.DataFrame(df.apply(lambda x: amp.geocode_convert(float(x['lon']), float(x['lat'])), axis=1).values.tolist(), columns=['MapitLon', 'MapitLat'])
+        df = pd.concat([df, mapit], axis=1)
 
-    df[['lat', 'lon']] = df['location'].str.split(',', expand=True)
-    mapit = pd.DataFrame(df.apply(lambda x: amp.geocode_convert(float(x['lon']), float(x['lat'])), axis=1).values.tolist(), columns=['MapitLon', 'MapitLat'])
-    df = pd.concat([df, mapit], axis=1)
     df['Timestamp'] = TIMESTAMP
-    site = 'Subway'
-    df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\{}_Amap_{}.xlsx'.format(site, TODAY), index=False, header=True, columns=list(df), sheet_name='Amap Api')
+
+    site = 'Grade_B_Office'
+    df.to_excel(FILE_DIR + r'\{}_Amap_{}.xlsx'.format(site, TODAY), index=False, header=True, columns=list(df), sheet_name='Amap Api')
 
 

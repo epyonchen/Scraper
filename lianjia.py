@@ -29,8 +29,8 @@ class Lianjia(TwoStepScraper):
         self.search_suffix = '/{}/xzl/rent/mlist?page={}'
 
     # Get items in one page
-    def get_item_list(self, cityname, pagenum):
-        list_link = self.search_suffix.format(cityname, pagenum)
+    def get_item_list(self, pagenum):
+        list_link = self.search_suffix.format(self.city, pagenum)
         list_soup = self.search(self.search_base + list_link)
         item_list = list_soup.find_all('a', attrs={'class': 'result__li'})
         return item_list

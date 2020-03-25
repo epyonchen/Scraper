@@ -27,7 +27,7 @@ class Expo(TwoStepScraper):
         self.search_suffix = '/zhanhui/{}_423_424_0_20190101/20191231/'
 
     # Get items in one page
-    def get_item_list(self, cityname, pagenum):
+    def get_item_list(self, pagenum):
         list_link = self.search_suffix.format(pagenum)
         list_soup = self.search(self.search_base + list_link)
         item_list = list_soup.find_all('div', attrs={'class': 'row'})
