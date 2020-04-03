@@ -103,9 +103,11 @@ class Diandianzu(TwoStepScraper):
         item_info = dict()
         item_info['Source_ID'] = city + '_' + item_id
         item_info['Name'] = item_name
+        item_info['City'] = self.entity
+
         if len(item_region) > 1:
-            item_info['行政区'] = item_region[0].text
-            item_info['商圈'] = item_region[1].text
+            item_info['District'] = item_region[0].text
+            item_info['Area'] = item_region[1].text
 
         try:
             item_info_raw = item_detail.find('div', attrs={'class': 'desc-box building-box left-box clearfix'}).find_all('li')
@@ -119,7 +121,7 @@ class Diandianzu(TwoStepScraper):
 
 if __name__ == '__main__':
 
-    cities = ['gz', 'sz',] # 'sh', 'bj', 'cd'
+    cities = ['gz', 'sz', 'sh', 'bj', 'cd']
 
     with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
 
@@ -127,11 +129,11 @@ if __name__ == '__main__':
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
         for city in cities_run:
-            one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city)  #
+            one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city, from_page=1, to_page=1)  #
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             scrapydb.upload(df=one_city.df, table_name=DETAIL_TABLE, schema='CHN_MKT', start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-            scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True, timestamp=TIMESTAMP, source=SITE, city=city)
+            scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True)#, timestamp=TIMESTAMP, source=SITE, city=city)
 
     # for city in cities:
     #     one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city, from_page=1, to_page=1)  #
