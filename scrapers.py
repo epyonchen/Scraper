@@ -140,10 +140,8 @@ class TwoStepScraper(Scraper):
             # If item_list is empty, stop query
             if not item_list:
                 logger.info('Page {} is empty. Stop this job.'.format(page))
-                logger.info('Total {} records, {} pages.'.format(str(len(item_detail_load)), str(page - from_page)))
-                if item_detail_load != []:
-                    one_entity.df = one_entity.df.append(item_detail_load, ignore_index=True, sort=False)
-                return one_entity, str(from_page), str(page)
+                break
+
             else:
                 page += step
                 # Go through items in one page

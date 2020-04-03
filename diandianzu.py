@@ -48,7 +48,6 @@ class Diandianzu(TwoStepScraper):
 
         one_item_soup = self.search(self.search_base + item_link)
         item_info = self.get_item_info(item=item, item_detail=one_item_soup)
-        print(item_info)
 
         try:
             item_detail_title = one_item_soup.find('div', attrs={'class': 'ftitle clearfix'}).find_all('div')
@@ -129,19 +128,18 @@ if __name__ == '__main__':
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
         for city in cities_run:
-            one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city, from_page=1, to_page=1)  #
+            one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city)  #
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
             scrapydb.upload(df=one_city.df, table_name=DETAIL_TABLE, schema='CHN_MKT', start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
-            scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True)#, timestamp=TIMESTAMP, source=SITE, city=city)
+            scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True)
 
     # for city in cities:
-    #     one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city, from_page=1, to_page=1)  #
+    #     one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city)  #
     #     logger.info('Start from page {}, stop at page {}.'.format(start, end))
-    #     one_city.df.to_excel(FILE_DIR + '\\' + city + DETAIL_TABLE + '.xlsx', index=False, header=True, sheet_name=city)
+    #     # one_city.df.to_excel(FILE_DIR + '\\' + city + DETAIL_TABLE + '.xlsx', index=False, header=True, sheet_name=city)
     #     one_city.info.to_excel(FILE_DIR + '\\' + city + INFO_TABLE + '.xlsx', index=False, header=True, sheet_name=city)
     #     break
-
 
     scrapyemail = em.Email()
     scrapyemail.send(subject='[Scrapy] ' + DETAIL_TABLE, content='Done', attachment=LOG_PATH)
