@@ -10,6 +10,7 @@ import pandas as pd
 import logging
 import pagemanipulate as pm
 
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(filename)s %(funcName)s %(lineno)d - %(message)s')
 logger = logging.getLogger('scrapy')
 
 
@@ -106,49 +107,47 @@ class Scraper:
 
 
 class TwoStepScraper(Scraper):
-    def __init__(self, city):
+    def __init__(self, entity):
         self.search_base = None
         self.search_url = None
-        self.city = city
+        self.entity = entity
         self.df = pd.DataFrame()
         self.info = pd.DataFrame()
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
         self.switch = True
 
-    # Query one city
+    # Query one entity
     @classmethod
-    def run(cls, from_page=1, to_page=None, city=None, step=1):
+    def run(cls, from_page=1, to_page=None, entity=None, step=1):
         page = from_page
-        one_city = cls(city)
+        one_entity = cls(entity)
         item_info_load = []
         item_detail_load = []
 
-        if not city:
-            logger.exception('City is missing.')
+        if not entity:
+            logger.exception('Entity is missing.')
             return None, str(from_page), str(page)
 
-        logger.info('Start querying {}.'.format(one_city.city))
+        logger.info('Start querying {}.'.format(one_entity.entity))
 
         while (not to_page) or (page <= to_page):
-            logger.info('Query City: {}    Page: {}.'.format(one_city.city, page))
+            logger.info('Query entity: {}    Page: {}.'.format(one_entity.entity, page))
 
             # Get items in one page
-            item_list = one_city.get_item_list(page)
+            item_list = one_entity.get_item_list(page)
 
             # If item_list is empty, stop query
             if not item_list:
                 logger.info('Page {} is empty. Stop this job.'.format(page))
-                logger.info('Total {} records, {} pages.'.format(str(len(item_detail_load)), str(page - from_page)))
-                if item_detail_load != []:
-                    one_city.df = one_city.df.append(item_detail_load, ignore_index=True, sort=False)
-                return one_city, str(from_page), str(page)
+                break
+
             else:
                 page += step
                 # Go through items in one page
                 for item in item_list:
                     # Get detail list of one item
-                    result_tuple = one_city.get_item_detail(item)
+                    result_tuple = one_entity.get_item_detail(item)
                     if isinstance(result_tuple, tuple) and (len(result_tuple) > 1):
                         item_detail_list = result_tuple[0]
                         item_info_list = result_tuple[1]
@@ -165,11 +164,11 @@ class TwoStepScraper(Scraper):
         logger.info('Total {} records, {} pages.'.format(str(len(item_detail_load)), str(page - from_page)))
 
         if item_detail_load:
-            one_city.df = one_city.df.append(item_detail_load, ignore_index=True, sort=False)
+            one_entity.df = one_entity.df.append(item_detail_load, ignore_index=True, sort=False)
         if item_info_load:
-            one_city.info = one_city.info.append(item_info_load, ignore_index=True, sort=False)
-        one_city.df = one_city.format_df()
-        return one_city, str(from_page), str(page)
+            one_entity.info = one_entity.info.append(item_info_load, ignore_index=True, sort=False)
+        one_entity.df = one_entity.format_df()
+        return one_entity, str(from_page), str(page)
     
     # Get item information
     def get_item_info(self):

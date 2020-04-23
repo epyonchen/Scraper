@@ -102,7 +102,7 @@ if __name__ == '__main__':
             one_city, start, end = timeout(func=Haozu.run, time=18000, city=city)  #
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
-            scrapydb.upload(df=one_city.df, table_name=TABLENAME, schema='CHN_MKT', start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
+            scrapydb.upload(df=one_city.df, table_name=TABLENAME, schema='CHN_MKT', start=start, end=end, timestamp=TIMESTAMP, source=SITE, entity=city)
             #
             # one_city, start, end = Haozu.run(city=city)  #, from_page=1, to_page=1
             # logger.info('Start from page {}, stop at page {}.'.format(start, end))

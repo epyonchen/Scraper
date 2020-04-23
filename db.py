@@ -105,7 +105,6 @@ class Mssql:
                 temp_query = 'INSERT INTO #Temp_{} ({}) VALUES {}'.format(table_name, self.get_columns(column_name), values)
                 logger.info('Insert {} rows'.format(total))
                 if not self.run(temp_query):
-
                     return False
                 values = None
                 count = 0
@@ -259,7 +258,6 @@ class Mssql:
             return True
         except Exception as e:
             logger.exception('SQL exception: {}'.format(e))
-            print(query)
             self.conn.rollback()
             return False
 
