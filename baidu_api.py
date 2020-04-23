@@ -24,7 +24,7 @@ class Baidu:
         elif api == 'ocr':
             self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
         elif api == 'translate':
-            self.base = ''
+            self.base = 'http://api.fanyi.baidu.com/api/trans/vip/translate?'
 
     # def get_token(self, ak=keys.baidu['ocr_ak'], sk=keys.baidu['ocr_sk']):
     #     query_token = self.base_token.format(ak, sk)
@@ -122,7 +122,7 @@ class Baidu:
                 while page > 0:
                     api_parameter = kwargs.copy()
                     api_parameter.update({'query':keyword, 'region':city, 'page_num':(page-1)})
-                    one_call = self.map_api_call(keys.baidu['map_ak'], location_input, **api_parameter)
+                    one_call = self.map_api_call(keys.baidu['map_ak'], keys.baidu['map_sk'], **api_parameter)
                     if one_call is not None:
                         df.append(one_call, ignore_index=True)
         return df
@@ -139,8 +139,37 @@ class Baidu:
                 return True
         return False
 
+    # Call translate api, refer parameter to http://api.fanyi.baidu.com/api/trans/product/apidoc
+    def translate_api_call(self, translate_id, translate_sk, keyword, from_lg, to_llg):
+        salt = str(random.randint(32768, 65536))
+        def _get_sign(id, sk, salt, q):
+            raw_sn = id + q + salt + sk
+            return hashlib.md5(raw_sn.encode('utf-8')).hexdigest()
+
+        sign = _get_sign(translate_id, translate_sk, salt, keyword)
+        parameter = 'appid={}&q={}&from={}&to={}&salt={}&sign={}'.format(translate_id, keyword, from_lg, to_llg, salt, sign)
+        query = self.base + parameter
+
+        try:
+            response = requests.get(query).json()
+            time.sleep(random.randint(1, 2))
+        except Exception as e:
+            logger.error(e)
+            return None
+
+        return response
+
+    def translate(self, keyword_input, from_language='auto', to_language='en'):
+        one_call = self.translate_api_call(keys.baidu['translate_id'], keys.baidu['translate_sk'],
+                                           keyword=keyword_input, from_lg=from_language, to_llg=to_language)
+        if one_call:
+            if len(one_call['trans_result']) > 0:
+                return one_call['trans_result'][0]
+            else:
+                return None
 
 if __name__ == '__main__':
-    b = Baidu(api='map')
-    print(b.map_api_call(keys.baidu['map_ak'], keys.baidu['map_sk'], query='喜茶', region='广州', output='json'))
+    a = Baidu(api='translate')
+
+    print(a.translate('周大福金融中心'))
 
