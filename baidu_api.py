@@ -1,8 +1,12 @@
+# -*- coding: utf-8 -*-
+
 import pandas as pd
 import keys
 import requests
 import time
 import random
+import hashlib
+import urllib
 import gecodeconvert as gc
 from aip import AipOcr
 from utility_commons import *
@@ -15,9 +19,12 @@ class Baidu:
     def __init__(self, api=None):
         self.switch = 0
         if api == 'map':
-            self.base = 'http://api.map.baidu.com/place/v2/search?'#query={}&ak=' + keys.baidu['map']
+            self.host = 'http://api.map.baidu.com'
+            self.base = '/place/v2/search?'
         elif api == 'ocr':
             self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
+        elif api == 'translate':
+            self.base = ''
 
     # def get_token(self, ak=keys.baidu['ocr_ak'], sk=keys.baidu['ocr_sk']):
     #     query_token = self.base_token.format(ak, sk)
@@ -38,7 +45,7 @@ class Baidu:
         try:
             result = self.client.basicGeneral(bin_image, kwargs)
         except Exception as e:
-            self.renew_client()
+            self.renew_client_ocr()
             logger.exception(e)
             return False
 
@@ -47,23 +54,31 @@ class Baidu:
         else:
             return False
 
-    def renew_client(self):
+    def renew_client_ocr(self):
         self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
         self.switch += 1
 
     # Call map api, refer parameter to http://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-placeapi
-    def map_api_call(self, baidu_key, location_input=None, **kwargs):
+    def map_api_call(self, map_ak, map_sk, **kwargs):
+        def _get_sn(querystr, sk):
+            encoded_str = urllib.parse.quote(querystr, safe="/:=&?#+!$,;'@()*[]")
+            raw_str = urllib.parse.quote_plus(encoded_str + sk).encode('utf-8')
+
+            return hashlib.md5(raw_str).hexdigest()
+
         query = self.base
         for key, value in kwargs.items():
             query = query + '&' + key + '=' + str(value)
-        query = query + '&ak=' + baidu_key
+        query = query + '&ak=' + map_ak
+        sn = _get_sn(query, map_sk)
+        query = self.host + query + '&sn=' + sn
 
         # Request api
         response = requests.get(query).json()
         time.sleep(random.randint(1, 2))
 
         # Validate response
-        if (response['status'] != 0) or response['total'] < 1:
+        if response['status'] != 0:
             return False
         else:
             one_call = list()
@@ -107,7 +122,7 @@ class Baidu:
                 while page > 0:
                     api_parameter = kwargs.copy()
                     api_parameter.update({'query':keyword, 'region':city, 'page_num':(page-1)})
-                    one_call = self.map_api_call(keys.baidu['map'], location_input, **api_parameter)
+                    one_call = self.map_api_call(keys.baidu['map_ak'], location_input, **api_parameter)
                     if one_call is not None:
                         df.append(one_call, ignore_index=True)
         return df
@@ -126,7 +141,6 @@ class Baidu:
 
 
 if __name__ == '__main__':
+    b = Baidu(api='map')
+    print(b.map_api_call(keys.baidu['map_ak'], keys.baidu['map_sk'], query='喜茶', region='广州', output='json'))
 
-    baidu = Baidu()
-    result = baidu.ocr_api_call(language_type='ENG', detect_direction='false')
-    print(result)
