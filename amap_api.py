@@ -104,6 +104,15 @@ class Amap:
                     parameters['page'] += 1
                 else:
                     break
+
+        if 'location' in list(results):
+            results[['lat', 'lon']] = results['location'].str.split(',', expand=True)
+            mapit = pd.DataFrame(results.apply(lambda x: geocode_convert(float(x['lon']), float(x['lat'])),
+                                               axis=1).values.tolist(), columns=['MapitLon', 'MapitLat'])
+            df = pd.concat([results, mapit], axis=1)
+
+        df['Timestamp'] = TIMESTAMP
+
         return results
 
 
