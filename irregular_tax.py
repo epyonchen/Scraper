@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image
-import baidu_api
+from baidu_api import Baidu_ocr
 import requests
 import utility_email as em
 from utility_commons import *
@@ -85,7 +85,7 @@ class Tax:
 
             vpic = self.get_vcode_pic()
             if vpic:
-                ocr = baidu_api.Baidu(api='ocr')
+                ocr = Baidu_ocr()
                 ocr_result = ocr.ocr_api_call(vpic, VCODE_PATH, bin_threshold=100, detect_direction='false', language_type='ENG', probability='true')
                 if (not ocr_result) and (ocr.switch < 4):
                     continue
@@ -257,8 +257,8 @@ if __name__ == '__main__':
     # Core scraping process
     for index, row in access_run.iterrows():
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.format(row['Entity_Name'], row['Server']))
-        # tax_df, tax_detail_df = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
-        tax_df, tax_detail_df = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
+        tax_df, tax_detail_df = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
+        # tax_df, tax_detail_df = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'], username=row['User_Name'], password=row['Password'])
         # Upload to database
         scrapydb = db.Mssql(keys.dbconfig)
         scrapydb.upload(df=tax_df, table_name=TAX_TABLE, new_id=False, dedup=False)
