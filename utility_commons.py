@@ -5,18 +5,21 @@ Created on Thur May 16th 2019
 """
 import os
 import datetime
-from datetime import date
-from dateutil.relativedelta import relativedelta
+import pandas as pd
 import logging
 import logging.config
+from datetime import date
+from dateutil.relativedelta import relativedelta
 from pytz import timezone
+from openpyxl import load_workbook
 from func_timeout import func_timeout, FunctionTimedOut
 
 # path
 SCRIPT_DIR = os.path.dirname(__file__)
-PIC_DIR = SCRIPT_DIR + r'\Vcode'
-FILE_DIR = SCRIPT_DIR + r'\Result'
-LOG_DIR = SCRIPT_DIR + r'\Log'
+TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper'
+PIC_DIR = TARGET_DIR + r'\Vcode'
+FILE_DIR = TARGET_DIR + r'\Result'
+LOG_DIR = TARGET_DIR + r'\Log'
 LOG_TABLE_NAME = 'Scrapy_Logs'
 
 # time
@@ -35,7 +38,7 @@ __log = None
 
 
 # Return logger, display INFO level logs in console and record ERROR level logs in file
-def getLogger(site):
+def getLogger(site='scrapy'):
         # Logging config
 
         LOGGING_CONFIG = {
@@ -75,11 +78,12 @@ def getLogger(site):
         }
 
         global __log
-        if __log is None:
-            logging.config.dictConfig(LOGGING_CONFIG)
-            __log = logging.getLogger('scrapy')
-            return __log
+        # if __log is None:
+        logging.config.dictConfig(LOGGING_CONFIG)
+        __log = logging.getLogger(site)
         return __log
+        # else return
+        # return __log
 
 
 # Kill process if timeout
@@ -90,3 +94,52 @@ def timeout(func, time=3000, **kwargs):
         logger = logging.getLogger('scrapy')
         logger.error('Timeout:\n%s', e)
         exit(1)
+
+
+# Get nested dict
+def get_nested_value(record):
+
+
+
+    new_record = record.copy()
+    for key, value in record.items():
+        if isinstance(value, dict):
+            inner_dict = get_nested_value(value)
+            new_record.update(inner_dict)
+            del new_record[key]
+        else:
+            continue
+    return new_record
+
+
+# Convert  excel to dataframe
+def excel_to_df(filename, path=None):
+    floder_dir = path if path else FILE_DIR
+
+    try:
+        df = pd.read_excel(floder_dir + r'\{}}.xlsx'.format(filename), sort=False)
+    except Exception as e0:
+        try:
+            df = pd.read_excel(floder_dir + r'\{}}.xls'.format(filename), sort=False)
+        except Exception as e:
+            logging.info(e)
+            return None
+
+    return df
+
+
+# Convert dataframe to excel
+def df_to_excel(df, filename, sheetname=None, path=None):
+    floder_dir = path if path else FILE_DIR
+    try:
+        writer = pd.ExcelWriter(floder_dir + r'\{}}.xlsx'.format(filename), engine='openpyxl')
+        workbook = load_workbook(writer.path)
+        writer.book = workbook
+        df.to_excel(writer, index=False, header=True, sheet_name=sheetname)
+        writer.save()
+        writer.close()
+    except Exception as e:
+        logging.info(e)
+        return None
+
+    return True
