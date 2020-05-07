@@ -98,9 +98,6 @@ def timeout(func, time=3000, **kwargs):
 
 # Get nested dict
 def get_nested_value(record):
-
-
-
     new_record = record.copy()
     for key, value in record.items():
         if isinstance(value, dict):

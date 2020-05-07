@@ -1,37 +1,138 @@
 # -*- coding: utf-8 -*-
 
-import pandas as pd
 import keys
-import requests
-import time
 import random
-import hashlib
+import time
 import urllib
 import gecodeconvert as gc
 from aip import AipOcr
-from utility_commons import *
+from default_api import default_api
+from utility_commons import getLogger, get_nested_value
 
-logger = logging.getLogger('scrapy')
+logger = getLogger('scrapy')
 
 
-class Baidu:
+class Baidu_map(default_api):
+    _api_keys = {
+        'place': ['query', 'tag', 'region'],  # specific keyword
+        'around': ['query', 'tag', 'location', 'radius'],  # poi of round area, <lat, lon>
+        'polygon': ['query', 'tag', 'bounds', 'city'],  # poi of polygon area, <lat, lon>
+        'detail': ['uid', 'uids']
+    }
 
-    def __init__(self, api=None):
+    _default_kwargs = {
+        'city_limit': 'true',
+        'scope': '1',  # 1-basic return, 2-detail return
+        'output': 'json',
+        'coord_type': '3',  # 1-wgs, 3-bd
+        'page_size': '1',
+        'page_num': 0,
+        'timestamp': str(round(time.time())),
+        'ak': keys.baidu['map_ak']
+    }
+
+    _alter_kwargs = {
+        'sign': 'sn',
+        'page': 'page_num',
+        'lat': 'lat',
+        'lon': 'lng'
+    }
+
+    # Convert bd to wgs
+    @staticmethod
+    def geocode_convert(lon, lat):
+        return pd.Series(gc.bd09_to_wgs84(lon, lat))
+
+    # Validate if location in return records
+    @staticmethod
+    def validate_in(record, location_in):
+        for loc in location_in:
+            if (loc in record['address']) or (loc in record['name']):
+                return True
+        return False
+
+    def __init__(self, api='place'):
+        super(Baidu_map, self).__init__(api)
+        self.base = 'http://api.map.baidu.com/place/v2/search?'
+        self.pre_query = '/place/v2/search?'
+        # self.input_keys = self._api_keys[api].copy()
+
+    def _get_sign(self, query):
+        query = self.pre_query + query
+        raw_str = urllib.parse.quote(query, safe="/:=&?#+!$,;'@()*[]") + keys.baidu['map_sk']
+        return self.get_md5(urllib.parse.quote_plus(raw_str))
+
+    def query(self, source_df, **kwargs):
+        results = super(Baidu_map, self).query(source_df=source_df, **kwargs)
+        if not results.empty:
+            results[['MapIT_lon', 'MatIT_lat']] = results.apply(
+                lambda x: self.geocode_convert(float(x['lng']), float(x['lat'])),
+                axis=1)
+
+        return results
+
+    def validate_response(self, api_response):
+        # Validate response
+        if not api_response:
+            logger.error('No response from api.')
+            return None
+        elif str(api_response['status']) != '0':
+            logger.error('Response error, status: {}'.format(api_response['status']))
+        else:
+            one_call = list()
+            for result in api_response['results']:
+                flat_record = get_nested_value(result)
+                one_call.append(flat_record)
+
+            return one_call
+
+
+class Baidu_translate(default_api):
+
+    _api_keys = {'translate': ['q', 'from', 'to'],
+                 }
+
+    _default_kwargs = {'appid': keys.baidu['translate_id'],
+                       'salt': str(random.randint(32768, 65536)),
+                       'from': 'auto',  # 1-basic return, 2-detail return
+                       'to': 'en',
+                       }
+
+    _alter_kwargs = {'sign': 'sign',
+                     'keyword': 'q',
+                     }
+
+    def __init__(self, api='translate'):
+        super().__init__(api)
+        self.base = 'https://fanyi-api.baidu.com/api/trans/vip/translate?'
+
+    def _get_sign(self, q):
+        raw_sn = self.parameters['appid'] + self.parameters[self._alter_kwargs['keyword']] + self.parameters['salt'] \
+                 + keys.baidu['translate_sk']
+        return self.get_md5(raw_sn)
+
+    def validate_response(self, api_response):
+
+        if not api_response:
+            logger.error('No response from api.')
+            return None
+        elif 'error_code' in api_response.keys():
+            logger.error('Response error code: {}'.format(api_response['error_code']))
+        elif ('trans_result' in api_response.keys()) and (len(api_response['trans_result']) > 0):
+            one_call = list()
+            for result in api_response['trans_result']:
+                flat_record = get_nested_value(result)
+                flat_record.update(api_response)
+                del flat_record['trans_result']
+                one_call.append(flat_record)
+                break
+            return one_call
+
+
+class Baidu_ocr(default_api):
+    def __init__(self):
         self.switch = 0
-        if api == 'map':
-            self.host = 'http://api.map.baidu.com'
-            self.base = '/place/v2/search?'
-        elif api == 'ocr':
-            self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
-        elif api == 'translate':
-            self.base = 'http://api.fanyi.baidu.com/api/trans/vip/translate?'
-
-    # def get_token(self, ak=keys.baidu['ocr_ak'], sk=keys.baidu['ocr_sk']):
-    #     query_token = self.base_token.format(ak, sk)
-    #     print(query_token)
-    #     response = requests.get(query_token).json()
-    #
-    #     return response['access_token']
+        self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
 
     def ocr_image_process(self, image, path, bin_threshold):
         img = image.convert('L')
@@ -58,118 +159,12 @@ class Baidu:
         self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
         self.switch += 1
 
-    # Call map api, refer parameter to http://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-placeapi
-    def map_api_call(self, map_ak, map_sk, **kwargs):
-        def _get_sn(querystr, sk):
-            encoded_str = urllib.parse.quote(querystr, safe="/:=&?#+!$,;'@()*[]")
-            raw_str = urllib.parse.quote_plus(encoded_str + sk).encode('utf-8')
-
-            return hashlib.md5(raw_str).hexdigest()
-
-        query = self.base
-        for key, value in kwargs.items():
-            query = query + '&' + key + '=' + str(value)
-        query = query + '&ak=' + map_ak
-        sn = _get_sn(query, map_sk)
-        query = self.host + query + '&sn=' + sn
-
-        # Request api
-        response = requests.get(query).json()
-        time.sleep(random.randint(1, 2))
-
-        # Validate response
-        if response['status'] != 0:
-            return False
-        else:
-            one_call = list()
-            for record in response['results']:
-                mapit = self.geocode_convert(record['location']['lat'], record['location']['lng'])
-                record['MapITlat'] = mapit[1]
-                record['MapITlon'] = mapit[0]
-                record = self.get_nested_value(record)
-                record['keyword'] = kwargs['query']
-
-                # inflag = self.validate_in(store, location_input)
-                # if inflag:
-                #     df = df.append(store, ignore_index=True)
-                # else:
-                #     continue
-
-                one_call.append(record)
-
-            return one_call
-
-    # Get nested dict
-    def get_nested_value(self, record):
-        new_record = record.copy()
-        for key, value in record.items():
-            if isinstance(value, dict):
-                inner_dict = self.get_nested_value(value)
-                new_record.update(inner_dict)
-                del new_record[key]
-            else:
-                continue
-        return new_record
-
-    # Query with keywords list and cities list
-    def search_location(self, keyword_inputs, city_inputs, location_input, **kwargs):
-        df = pd.DataFrame()
-
-        for city in city_inputs:
-            for keyword in keyword_inputs:
-                page = 1
-                print('df size:', len(df))
-                while page > 0:
-                    api_parameter = kwargs.copy()
-                    api_parameter.update({'query':keyword, 'region':city, 'page_num':(page-1)})
-                    one_call = self.map_api_call(keys.baidu['map_ak'], keys.baidu['map_sk'], **api_parameter)
-                    if one_call is not None:
-                        df.append(one_call, ignore_index=True)
-        return df
-
-    # Convert from Baidu to wgs84
-    def geocode_convert(self, lat, lon):
-
-        return gc.bd09_to_wgs84(lon, lat)
-
-    # Validate if location in return records
-    def validate_in(self, record, location_in):
-        for loc in location_in:
-            if (loc in record['address']) or (loc in record['name']):
-                return True
-        return False
-
-    # Call translate api, refer parameter to http://api.fanyi.baidu.com/api/trans/product/apidoc
-    def translate_api_call(self, translate_id, translate_sk, keyword, from_lg, to_llg):
-        salt = str(random.randint(32768, 65536))
-        def _get_sign(id, sk, salt, q):
-            raw_sn = id + q + salt + sk
-            return hashlib.md5(raw_sn.encode('utf-8')).hexdigest()
-
-        sign = _get_sign(translate_id, translate_sk, salt, keyword)
-        parameter = 'appid={}&q={}&from={}&to={}&salt={}&sign={}'.format(translate_id, keyword, from_lg, to_llg, salt, sign)
-        query = self.base + parameter
-
-        try:
-            response = requests.get(query).json()
-            time.sleep(random.randint(1, 2))
-        except Exception as e:
-            logger.error(e)
-            return None
-
-        return response
-
-    def translate(self, keyword_input, from_language='auto', to_language='en'):
-        one_call = self.translate_api_call(keys.baidu['translate_id'], keys.baidu['translate_sk'],
-                                           keyword=keyword_input, from_lg=from_language, to_llg=to_language)
-        if one_call:
-            if len(one_call['trans_result']) > 0:
-                return one_call['trans_result'][0]
-            else:
-                return None
 
 if __name__ == '__main__':
-    a = Baidu(api='translate')
-
-    print(a.translate('周大福金融中心'))
-
+    from utility_commons import TARGET_DIR
+    import pandas as pd
+    df = pd.DataFrame()
+    df = df.append([{'query': '喜茶', 'region': '广州'}, {'query': '一点点', 'region': '广州'}], ignore_index=True)
+    bm = Baidu_map()
+    r = bm.query(df)
+    print(r)

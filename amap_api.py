@@ -6,120 +6,89 @@ Created on Sun June 24th 2018
 """
 
 import keys
-import requests
-import time
 import random
-import pandas as pd
+import time
+import urllib
 import gecodeconvert as gc
-from utility_commons import *
+from default_api import default_api
+from utility_commons import getLogger, get_nested_value
 
 logger = getLogger('Amap')
 
 
-def geocode_convert(lat, lon):
-
-    return gc.gcj02_to_wgs84(lon, lat)
-
-
-class Amap:
+class Amap(default_api):
     # Map api type to input parameter
-    _api_keys_map = {'text': ['keywords', 'types', 'city'],  # return specific keyword
-                     'around': ['keywords', 'types', 'location', 'radius', 'city'],  # return poi of round area
-                     'polygon': ['keywords', 'types', 'polygon', 'city'],  # return poi of polygon area
-                     'detail': ['id']
-                     }
+    _api_keys = {
+        'text': ['keywords', 'types', 'city'],  # specific keyword
+        'around': ['keywords', 'types', 'location', 'radius', 'city'],  # poi of round area, <lon, lat>
+        'polygon': ['keywords', 'types', 'polygon', 'city'],  # poi of polygon area
+        'detail': ['id']
+    }
 
-    _default_kwargs = {'citylimit': True,
-                       'offset': '1',
-                       'output': 'JSON',
-                       'page': '0'
-                      }
+    _default_kwargs = {
+        'citylimit': True,
+        'offset': '10',
+        'output': 'JSON',
+        'page': 0,
+        'key': keys.amap['map_ak']
+    }
+
+    _alter_kwargs = {
+        'sign': 'sig',
+        'keyword': 'keywords',
+        'page': 'page',
+        'lat': 'lat',
+        'lon': 'lon'}
 
     def __init__(self, api='text'):
-        self.key_index = 0
-        self.key_switch = False
-        self.keys = keys.amap[self.key_index % len(keys.amap)]
-        self.api_type = api
-        self.search_base = 'https://restapi.amap.com/v3/place/{}?'.format(api)
+        super().__init__(api)
+        self.base = 'https://restapi.amap.com/v3/place/{}?'.format(api)
 
-    # Single query of api
-    def call_api(self, amap_key, **kwargs):
-        query = self.search_base
+    @staticmethod
+    def geocode_convert(lon, lat):
+        return pd.Series(gc.gcj02_to_wgs84(lon, lat))
 
-        for key, value in kwargs.items():
-            query = query + '&' + key + '=' + str(value)
-        query = query + '&key=' + amap_key
-
-        try:
-            response = requests.get(query).json()
-
-        except Exception as e:
-            logging.error(e)
-            return None
-
-        time.sleep(random.randint(1, 2))
-
-        if ('status' not in response.keys()) or (response['status'] != '1'):
-            return None
-        else:
-            one_call = get_nested_value(response['pois'])
-            return one_call
-
-    # Convert from Amp to wgs
-
-    # Update input parameters
-    def update_parameters(self, source_row=None, **kwargs):
-        parameters = self._default_kwargs.copy()
-        if source_row:
-            if set(self._api_keys_map.keys()).intersection(list(source_row)):
-                for key, value in self._api_keys_map.items():
-                    parameters.update({key: str(source_row[value])})
-            else:
-                logger.error('Valid query keyword is missing in source.')
-                return None
-        if kwargs:
-            parameters.update(kwargs)
-
-        return parameters
-
-    # Do api query
     def query(self, source_df, **kwargs):
-        results = pd.DataFrame()
-        self._default_kwargs = self.update_parameters(**kwargs)
-        for index, row in source_df.iterrows():
-            parameters = self.update_parameters(row)
-            if parameters:
-                logger.info('Running index: {}'.format(index))
-            else:
-                return None
-
-            while True:
-                one_call = amp.call_api(keys.amap, **parameters)
-                if one_call:
-                    one_call.update(row.to_dict())
-                    results = results.append(one_call, ignore_index=True)
-                else:
-                    break
-                if parameters['page'] > 0:
-                    parameters['page'] += 1
-                else:
-                    break
-
-        if 'location' in list(results):
-            results[['lat', 'lon']] = results['location'].str.split(',', expand=True)
-            mapit = pd.DataFrame(results.apply(lambda x: geocode_convert(float(x['lon']), float(x['lat'])),
-                                               axis=1).values.tolist(), columns=['MapitLon', 'MapitLat'])
-            df = pd.concat([results, mapit], axis=1)
-
-        df['Timestamp'] = TIMESTAMP
+        results = super(Amap, self).query(source_df=source_df, **kwargs)
+        if not results.empty:
+            results[['lon', 'lat']] = results['location'].str.split(',', 1, expand=True)
+            results[['MapIT_lon', 'MatIT_lat']] = results.apply(
+                lambda x: self.geocode_convert(float(x['lon']), float(x['lat'])),
+                axis=1)
 
         return results
 
+    def _get_sign(self, query):
+        query = ''
+        for key, value in self.parameters.items():
+            query = query + '&' + key + '=' + str(value)
+        raw_str = query + keys.amap['map_sk']
+
+        return self.get_md5(raw_str)
+
+    def validate_response(self, api_response):
+        # Validate response
+        if not api_response:
+            logger.error('No response from api.')
+            return None
+        elif api_response['status'] != '1':
+            logger.error('Response error, status: {}'.format(api_response['status']))
+        else:
+            one_call = list()
+            for result in api_response['pois']:
+                flat_record = get_nested_value(result)
+                one_call.append(flat_record)
+
+            return one_call
+
 
 if __name__ == '__main__':
-    amp = Amap()
-    input = excel_to_df('Guangzhou Project ID')
-
+    import pandas as pd
+    amp = Amap('text')
+    # input = excel_to_df('Guangzhou Project ID')
+    df = pd.DataFrame()
+    df = df.append({'keywords': '喜茶', 'city': '广州'}, ignore_index=True)
+    print(amp.query(df))
     # input = pd.read_excel(FILE_DIR + r'\Guangzhou Project ID.xlsx', sort=False)
     # city = '440100'
     # count = 0
