@@ -8,10 +8,9 @@ import datetime
 import pandas as pd
 import logging
 import logging.config
-from datetime import date
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 from func_timeout import func_timeout, FunctionTimedOut
 
 # path
@@ -110,14 +109,16 @@ def get_nested_value(record):
 
 
 # Convert  excel to dataframe
-def excel_to_df(filename, path=None):
-    floder_dir = path if path else FILE_DIR
-
+def excel_to_df(filename, sheet_name=None, path=None):
+    folder_dir = path if path else TARGET_DIR
+    para = {'sort': False, 'dtype': str}
+    if sheet_name:
+        para.update({'sheet_name': sheet_name})
     try:
-        df = pd.read_excel(floder_dir + r'\{}}.xlsx'.format(filename), sort=False)
-    except Exception as e0:
+        df = pd.read_excel(folder_dir + r'\{}.xlsx'.format(filename), **para)
+    except:
         try:
-            df = pd.read_excel(floder_dir + r'\{}}.xls'.format(filename), sort=False)
+            df = pd.read_excel(folder_dir + r'\{}.xls'.format(filename), **para)
         except Exception as e:
             logging.info(e)
             return None
@@ -126,16 +127,19 @@ def excel_to_df(filename, path=None):
 
 
 # Convert dataframe to excel
-def df_to_excel(df, filename, sheetname=None, path=None):
-    floder_dir = path if path else FILE_DIR
+def df_to_excel(df, filename, sheet_name='Results', path=None):
+    file_path = (path if path else TARGET_DIR) + r'\{}.xlsx'.format(filename)
     try:
-        writer = pd.ExcelWriter(floder_dir + r'\{}}.xlsx'.format(filename), engine='openpyxl')
-        workbook = load_workbook(writer.path)
-        writer.book = workbook
-        df.to_excel(writer, index=False, header=True, sheet_name=sheetname)
-        writer.save()
-        writer.close()
+        if os.path.exists(file_path):
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                writer.book = load_workbook(writer.path)
+                df.to_excel(writer, index=False, header=True, sheet_name=sheet_name)
+                writer.save()
+                writer.close()
+        else:
+            df.to_excel(file_path, index=False, header=True, sheet_name=sheet_name)
     except Exception as e:
+        print(e)
         logging.info(e)
         return None
 
