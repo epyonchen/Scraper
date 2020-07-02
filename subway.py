@@ -21,7 +21,7 @@ from scrapers import Scraper
 class Subway(Scraper):
 
     def __init__(self, entity=None):
-        self.search_base = 'https://zh.wikipedia.org/wiki/'
+        self.search_base = 'https://en.wikipedia.org/wiki/'
         self.search_url = quote(entity)
         self.entity = entity
         self.df = pd.DataFrame()
@@ -32,11 +32,12 @@ class Subway(Scraper):
 
     def get_item_list(self, headers=None):
         items_soup = self.search(self.search_base + self.search_url, headers=headers)
-        items_table = items_soup.find('table', attrs={'class': 'wikitable'})
+        items_table = items_soup.find_all('table', attrs={'class': 'wikitable'})
 
         if not bool(items_table):
             return False
-
+        elif len(items_table) > 1:
+            items_table = items_table[-1]
         # Column name
         items_table = items_table.find_all('tr')
         col_names = items_table[0].find_all('th')
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     headers = {
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
         'accept-encoding': 'gzip, deflate, br',
-        'accept-language': 'zh-CN,zh;q=0.9',
+        # 'accept-language': 'zh-CN,zh;q=0.9',
         'cache-control': 'max-age=0',
         'cookie': 'TBLkisOn=0; mwPhp7Seed=8db; GeoIP=CN:SH:Shanghai:31.04:121.40:v4; WMF-Last-Access-Global=22-Aug-2019; WMF-Last-Access=22-Aug-2019',
         'dnt': '1',
@@ -99,10 +100,10 @@ if __name__ == '__main__':
     }
     result_list = []
     for i in range(1, 23):
-        entity = '广州地铁{}号线'.format(i)
+        entity = 'Line_{}_(Guangzhou_Metro)'.format(i)
         s = Subway(entity)
         print(entity)
-        result = s.get_item_list(headers=headers)
+        result = s.get_item_list(headers=None)
         if result:
             result_list = result_list + result
         else:
@@ -112,4 +113,4 @@ if __name__ == '__main__':
     df.fillna('')
     df['地铁站名'] = df['站名'] + df['站名及配色'] + df['站名和配色']
     # df = df.drop(['站名', '站名及配色'], axis=1)
-    df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\GZ_Subway.xlsx', index=False)
+    df.to_excel(r'C:\Users\Benson.Chen\Desktop\Scraper\Result\GZ_Subway_en.xlsx', index=False)
