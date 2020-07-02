@@ -5,6 +5,7 @@ import requests
 import time
 import random
 import hashlib
+from urllib import parse
 from utility_commons import getLogger, get_nested_value
 
 logger = getLogger('scrapy')
@@ -48,12 +49,13 @@ class default_api:
     # Call api
     def call_api(self, **kwargs):
         query = ''
+
         for key, value in kwargs.items():
-            query = query + '&' + key + '=' + str(value)
+            query = query + '&' + key + '=' + parse.quote_plus(str(value))
         query = self.base + query + '&' + self._alter_kwargs['sign'] + '=' + self._get_sign(query)
         try:
             response = requests.get(query).json()
-            time.sleep(random.randint(1, 2))
+            # time.sleep(random.randint(1, 2))
         except Exception as e:
             logger.error(e)
             return None
@@ -84,7 +86,7 @@ class default_api:
                 if one_call:
                     for call in one_call:
                         call.update(row.to_dict())
-                    results = results.append(one_call, ignore_index=True)
+                    results = results.append(one_call, ignore_index=True, sort=False)
                 else:
                     break
 
