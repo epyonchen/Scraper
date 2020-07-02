@@ -6,107 +6,84 @@ Created on Sun June 24th 2018
 """
 
 import keys
-import requests
-import time
-import random
-import os
-import pandas as pd
 import gecodeconvert as gc
-from utility_commons import *
+from default_api import default_api
+from utility_commons import getLogger, get_nested_value
+
+logger = getLogger('Amap')
 
 
-class Amap:
+class Amap(default_api):
+    # Map api type to input parameter
+    _api_keys = {
+        'text': ['keywords', 'types', 'city'],  # specific keyword
+        'around': ['keywords', 'types', 'location', 'radius', 'city'],  # poi of round area, <lon, lat>
+        'polygon': ['keywords', 'types', 'polygon', 'city'],  # poi of polygon area
+        'detail': ['id']
+    }
 
-    def __init__(self):
-        self.key_index = 0
-        self.key_switch = False
-        self.keys = keys.amap[self.key_index % len(keys.amap)]
-        self.search_base = 'https://restapi.amap.com/v3/place/text?'
+    _default_kwargs = {
+        'citylimit': True,
+        'offset': '1',
+        'output': 'JSON',
+        'page': 0,
+        'key': keys.amap['map_ak']
+    }
 
-    def search_location_api_call(self, amap_key, **kwargs):
-        query = self.search_base
+    _alter_kwargs = {
+        'sign': 'sig',
+        'keyword': 'keywords',
+        'page': 'page',
+        'lat': 'lat',
+        'lon': 'lon'}
 
-        for key, value in kwargs.items():
+    def __init__(self, api='text'):
+        super().__init__(api)
+        self.base = 'https://restapi.amap.com/v3/place/{}?'.format(api)
+
+    @staticmethod
+    def geocode_convert(lon, lat):
+        return pd.Series(gc.gcj02_to_wgs84(lon, lat))
+
+    def query(self, source_df, **kwargs):
+        results = super(Amap, self).query(source_df=source_df, **kwargs)
+        if not results.empty:
+            results[['lon', 'lat']] = results['location'].str.split(',', 1, expand=True)
+            results[['MapIT_lon', 'MatIT_lat']] = results.apply(
+                lambda x: self.geocode_convert(float(x['lon']), float(x['lat'])),
+                axis=1)
+        return results
+
+    def _get_sign(self, query):
+        query = ''
+        for key, value in self.parameters.items():
             query = query + '&' + key + '=' + str(value)
-        query = query + '&key=' + amap_key
+        raw_str = query + keys.amap['map_sk']
 
-        try:
-            response = requests.get(query).json()
+        return self.get_md5(raw_str)
 
-        except Exception as e:
-            logging.error(e)
+    def validate_response(self, api_response):
+        # Validate response
+        if not api_response:
+            logger.error('No response from api.')
             return None
-
-        time.sleep(random.randint(1, 2))
-
-        if ('status' not in response.keys()) or (response['status'] != '1'):
-            return None
+        elif api_response['status'] != '1':
+            logger.error('Response error, status: {}'.format(api_response['status']))
         else:
-            one_call = response['pois']
+            one_call = list()
+            for result in api_response['pois']:
+                flat_record = get_nested_value(result)
+                one_call.append(flat_record)
+
             return one_call
-
-    # Convert from Baidu to
-    def geocode_convert(self, lat, lon):
-
-        return gc.gcj02_to_wgs84(lon, lat)
 
 
 if __name__ == '__main__':
+    import pandas as pd
 
-    df = pd.DataFrame()
-    amp = Amap()
-
-    input = pd.read_excel(FILE_DIR + r'\Guangzhou Project ID.xlsx', sort=False)
-    city = '440100'
-    count = 0
-    # count += 1
-    # if count >= 10:
-    #     break
-    # keywords = input['项目']
-    # for city in cities:
-    #     for key in keywords:
-    #         page = 1
-    #         while page > 0:
-    #             one_call = amp.search_location_api_call(keys.amap, keywords=key, types='120000', offset='1', output='JSON', page=page) #  building='B0FFH11BOI',
-    #
-    #             if one_call is not None:
-    #                 one_call['Keyword'] = key
-    #                 df = df.append(one_call)
-    #                 page += 1
-    #             else:
-    #                 break
-
-    for index, row in input.iterrows():
-        keyword = str(row['项目名称'])
-        print(keyword)
-        one_call = amp.search_location_api_call(keys.amap[0], keywords=keyword, city=city, citylimit=True,  offset='1', output='JSON') #  building='B0FFH11BOI',types='190100',
-        if not one_call:
-            one_call = dict()
-        else:
-            one_call = one_call[0]
-        # print(one_call)
-        one_call.update(row.to_dict())
-        df = df.append(one_call, ignore_index=True)
-
-
-    # page = 1
-    # polygon = '113.249735,23.106962|113.250146,23.106072|113.279243,23.11408|113.287617,23.110736|113.288253,23.112808|113.279949,23.115966|113.266173,23.11496|113.249735,23.106962'
-    # while page > 0:
-    #     one_call = amp.search_location_api_call(polygon=polygon, amap_key=keys.amap[0], types='050000', city=city, citylimit=True, offset='20', output='JSON', page=page)  # building='B0FFH11BOI',types='190100',
-    #     if bool(one_call):
-    #         print(page)
-    #         df = df.append(one_call, ignore_index=True)
-    #         page += 1
-    #     else:
-    #         break
-    if 'location' in list(df):
-        df[['lat', 'lon']] = df['location'].str.split(',', expand=True)
-        mapit = pd.DataFrame(df.apply(lambda x: amp.geocode_convert(float(x['lon']), float(x['lat'])), axis=1).values.tolist(), columns=['MapitLon', 'MapitLat'])
-        df = pd.concat([df, mapit], axis=1)
-
-    df['Timestamp'] = TIMESTAMP
-
-    site = 'Grade_B_Office'
-    df.to_excel(FILE_DIR + r'\{}_Amap_{}.xlsx'.format(site, TODAY), index=False, header=True, columns=list(df), sheet_name='Amap Api')
-
-
+    from utility_commons import excel_to_df, df_to_excel
+    amap = Amap('text')
+    input = pd.DataFrame()
+    input = excel_to_df('国际综合排行', sheet_name='Query')
+    df = amap.query(input)
+    df_to_excel(df, '国际综合排行')

@@ -7,7 +7,8 @@ import keys
 from utility_commons import *
 import re
 
-logger = logging.getLogger('scrapy')
+logger = getLogger('scrapy')
+
 
 class Email:
     def __init__(self, username=keys.email['username'], password=keys.email['password'], host=MAIL_HOST, port=MAIL_PORT):
@@ -78,7 +79,6 @@ class Email:
             self.msg.attach(att)
 
         return self.msg.as_string()
-
 
 
 if __name__ == '__main__':

@@ -1,0 +1,13 @@
+pandas
+requests
+bs4
+lxml
+Pillow
+baidu-aip
+pyodbc
+pymssql
+selenium
+urllib3
+func-timeout
+xlrd
+openpyxl

@@ -81,7 +81,6 @@ class Scraper:
         page = from_page
         one_entity = cls(entity)
         item_info_load = []
-        item_detail_load = []
 
         if not entity:
             logger.exception('Entity is missing.')
@@ -95,13 +94,17 @@ class Scraper:
             # Get items in one page
             item_list = one_entity.get_item_list(page)
             page += step
+            if item_list:
 
-        logger.info('Total {} records, {} pages.'.format(str(len(item_list)), str(page - from_page)))
+                item_info_load += item_list
+            else:
+                logger.info('Page {} is empty. Stop this job.'.format(page))
+                # break
 
-        if item_list:
-            one_entity.df = one_entity.df.append(item_list, ignore_index=True, sort=False)
+        logger.info('Total {} records, {} pages.'.format(str(len(item_info_load)), str(page - from_page)))
+
         if item_info_load:
-            one_entity.info = one_entity.info.append(item_info_load, ignore_index=True, sort=False)
+            one_entity.df = one_entity.df.append(item_info_load, ignore_index=True, sort=False)
         one_entity.df = one_entity.format_df()
         return one_entity, str(from_page), str(page - 1)
 

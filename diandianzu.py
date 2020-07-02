@@ -127,10 +127,11 @@ if __name__ == '__main__':
         existing_cities = scrapydb.select(table_name=LOG_TABLE_NAME, source=SITE, customized={'Timestamp': ">='{}'".format(TODAY), 'City': 'IN ({})'.format('\'' + '\', \''.join(list(cities)) + '\'')})
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
-        for city in cities_run:
-            one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city)  #
-            logger.info('Start from page {}, stop at page {}.'.format(start, end))
+    for city in cities_run:
+        one_city, start, end = timeout(func=Diandianzu.run, time=18000, entity=city)  #
+        logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
+        with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
             scrapydb.upload(df=one_city.df, table_name=DETAIL_TABLE, schema='CHN_MKT', start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
             scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True)
 
