@@ -1,19 +1,17 @@
 """
-Created on Thur Feb 28th 2019
+Created on Feb 28th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
+
 
 import requests
 from bs4 import BeautifulSoup
 import random
 import time
 import pandas as pd
-from PageManipulate import Page
 import re
 import datetime
-import db
-import keys
 
 
 def office_scraper(city, page):

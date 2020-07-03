@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jan 24th 2019
+Created on Jan 24th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
+
 
 import pymssql
 import pandas as pd

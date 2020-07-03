@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created on June 24th 2018
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
@@ -7,7 +15,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from utility_commons import *
 
-
 _DEFAULT_PREFERENCE = {
     'browser.download.folderList': 2,
     'browser.download.manager.showWhenStarting': False,
@@ -16,27 +23,12 @@ _DEFAULT_PREFERENCE = {
     'browser.download.manager.focusWhenStarting': False,
     'browser.helperApps.neverAsk.saveToDisk': 'text/csv/xls/xlsx'
 }
-
 logger = getLogger('scrapy')
 
 
 class Page:
 
     def __init__(self, url='http://www.example.com', page_load_strategy='eager', **preference):
-        # self.desired_capabilities = DesiredCapabilities.FIREFOX
-        # self.desired_capabilities["pageLoadStrategy"] = pageLoadStrategy
-        # self.options = webdriver.FirefoxOptions()
-        # self.options.add_argument('-headless')
-        # if not bool(preference):
-        #     _DEFAULT_PREFERENCE.update(preference)
-        # self.profile = webdriver.FirefoxProfile()
-        # for key, value in _DEFAULT_PREFERENCE.items():
-        #     self.profile.set_preference(key, value)
-        #
-        # self.driver = webdriver.Firefox(firefox_options=self.options, firefox_profile=self.profile)
-        # # self.driver.maximize_window()
-        # self.soup = None
-        # self.driver.get(url)
         logger.info('Open browser.')
         self.renew(url, page_load_strategy, **preference)
 

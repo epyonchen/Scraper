@@ -7,11 +7,10 @@ Created on Thu Jan 24th 2019
 
 import pymssql
 import pandas as pd
-import logging
 import pyodbc
-from utility_commons import LOG_TABLE_NAME
+from utility_commons import LOG_TABLE_NAME, getLogger
 
-logger = logging.getLogger('scrapy')
+logger = getLogger('scrapy')
 
 
 class Mssql:

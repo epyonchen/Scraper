@@ -1,5 +1,5 @@
 """
-Created on Sun Nov 5yh 2019
+Created on Nov 5yh 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
@@ -9,23 +9,21 @@ import random
 import time
 import requests
 import db
-import keys
 import json
 import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
 from urllib.parse import quote
+import keys
 
 SITE = 'Beike'
 TABLENAME = 'Scrapy_Beike'
 TABLENAME_INFO = 'Scrapy_Beike_info'
 LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
 TEMP_PATH = FILE_DIR + '\\' + SITE + TODAY + '.xlsx'
-
 logger = getLogger(SITE)
-
-
 global cities
+
 
 class Beike(TwoStepScraper):
 

@@ -1,5 +1,5 @@
 """
-Created on Sun Dec 21st 2018
+Created on Dec 21st 2018
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
@@ -9,10 +9,10 @@ import random
 import time
 import re
 import db
-import keys
 import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
+import keys
 
 
 SITE = 'Lianjia'

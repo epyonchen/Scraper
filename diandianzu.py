@@ -1,5 +1,5 @@
 """
-Created on Sun Jan 9th 2019
+Created on Jan 9th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
@@ -9,10 +9,10 @@ import random
 import time
 import re
 import db
-import keys
 import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
+import keys
 
 SITE = 'Diandianzu'
 DETAIL_TABLE = 'Scrapy_Diandianzu'

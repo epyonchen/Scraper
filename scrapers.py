@@ -1,17 +1,17 @@
 """
-Created on Thur April 18th 2019
+Created on April 18th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
+
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import logging
 import pagemanipulate as pm
+from utility_commons import getLogger
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(filename)s %(funcName)s %(lineno)d - %(message)s')
-logger = logging.getLogger('scrapy')
+logger = getLogger('scrapy')
 
 
 class Scraper:

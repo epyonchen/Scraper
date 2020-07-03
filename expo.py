@@ -1,5 +1,5 @@
 """
-Created on Mon July 1st 2019
+Created on July 1st 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
@@ -8,17 +8,14 @@ Created on Mon July 1st 2019
 import random
 import time
 import re
-import db
-import keys
-import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
 
 SITE = 'Expo'
 TABLENAME = 'Scrapy_' + SITE
 LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
-
 logger = getLogger(SITE)
+
 
 class Expo(TwoStepScraper):
     def __init__(self, city):

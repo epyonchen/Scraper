@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+"""
+Created on April 24th 2020
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
 
 import pandas as pd
 import requests
-import time
-import random
 import hashlib
 from urllib import parse
-from utility_commons import getLogger, get_nested_value
+from utility_commons import getLogger
 
 logger = getLogger('scrapy')
 

@@ -1,23 +1,22 @@
 """
-Created on Thur May 11th 2019
+Created on May 11th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
 
-import keys
 import re
-import pandas as pd
+import requests
 import db2 as db
 import pagemanipulate as pm
+import utility_email as em
+from PIL import Image
+from baidu_api import Baidu_ocr
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from PIL import Image
-from baidu_api import Baidu_ocr
-import requests
-import utility_email as em
 from utility_commons import *
+import keys
 
 SCREENSHOT_PATH = PIC_DIR + r'\screen_shot.png'
 VCODE_PATH = PIC_DIR + r'\vcode.png'
@@ -40,8 +39,6 @@ class Tax:
     def __init__(self, link, username, password):
 
         self.base = link
-        # self.site = site
-        # self.server = server
         self.username = username
         self.password = password
         self.web = pm.Page(self.base, 'normal')

@@ -1,19 +1,20 @@
 """
-Created on Sun Jan 15th 2019
+Created on Jan 15th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
+
 
 import random
 import time
 import re
 import db
-import keys
 import requests
 import json
 import utility_email as em
 from utility_commons import *
 from scrapers import TwoStepScraper
+import keys
 
 SITE = 'Mytophome'
 TABLENAME = 'Scrapy_Mytophome'

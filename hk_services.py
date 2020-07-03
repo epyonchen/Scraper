@@ -4,14 +4,14 @@ Created on Sun Jan 9th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
+
 import requests
-from bs4 import BeautifulSoup
 import random
 import time
-import pandas as pd
 import re
-import datetime
 import db
+from bs4 import BeautifulSoup
+from utility_commons import *
 import keys
 
 

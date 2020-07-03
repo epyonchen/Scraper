@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun June 24th 2018
+Created on June 24th 2018
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
+
 import re
 import requests
-import pandas as pd
-from bs4 import BeautifulSoup
-import keys
 import db
 import pagemanipulate as pm
 import utility_email as em
+from bs4 import BeautifulSoup
 from utility_commons import *
+import keys
 
 SITE = 'FirePublic'
 TABLENAME = 'Scrapy_FirePublic'
 LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
-
 logger = getLogger(SITE)
 total_page = 0
+
 
 class FirePublic:
 
