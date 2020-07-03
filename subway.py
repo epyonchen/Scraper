@@ -1,19 +1,13 @@
 """
-Created on Sun Aug 21st 2018
+Created on Aug 21st 2018
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-import random
-import time
+
 import re
-import db
-import keys
 import requests
-import utility_email as em
-import pandas as pd
 from utility_commons import *
-from bs4 import BeautifulSoup
 from urllib.parse import quote
 from scrapers import Scraper
 

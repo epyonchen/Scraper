@@ -1,18 +1,21 @@
 """
-Created on Thur Feb 28th 2019
+Created on Feb 28th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-import requests
-from bs4 import BeautifulSoup
+
+
+
 import random
 import time
-import pandas as pd
-from pagemanipulate import Page
 import re
 import datetime
 import db
+import pandas as pd
+from pagemanipulate import Page
+from bs4 import BeautifulSoup
+from utility_commons import *
 import keys
 
 

@@ -3,6 +3,8 @@ Created on Thur May 16th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
+
+
 import os
 import datetime
 import pandas as pd
@@ -10,8 +12,10 @@ import logging
 import logging.config
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
-from openpyxl import load_workbook, Workbook
+from openpyxl import load_workbook
 from func_timeout import func_timeout, FunctionTimedOut
+# import sys
+# sys.path.append(r'C:\Users\benson.chen\Credentials')
 
 # path
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -39,7 +43,6 @@ __log = None
 # Return logger, display INFO level logs in console and record ERROR level logs in file
 def getLogger(site='scrapy'):
         # Logging config
-
         LOGGING_CONFIG = {
             'version': 1,  # required
             'disable_existing_loggers': True,  # this config overrides all other loggers
@@ -77,12 +80,9 @@ def getLogger(site='scrapy'):
         }
 
         global __log
-        # if __log is None:
         logging.config.dictConfig(LOGGING_CONFIG)
         __log = logging.getLogger(site)
         return __log
-        # else return
-        # return __log
 
 
 # Kill process if timeout

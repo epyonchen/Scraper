@@ -1,11 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+Created on June 24th 2018
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 import smtplib
+import re
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
-import keys
 from utility_commons import *
-import re
+import keys
 
 logger = getLogger('scrapy')
 
@@ -80,8 +88,3 @@ class Email:
 
         return self.msg.as_string()
 
-
-if __name__ == '__main__':
-    em = Email()
-    a = em.send(subject='test', content='test content', attachment=r'C:\Users\Benson.Chen\Desktop\Scraper\Result\Irregular_Tax.xls')
-    print(a)

@@ -1,14 +1,16 @@
 """
-Created on Sun Jun 21st 2020
+Created on Jun 21st 2020
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-from scrapers import Scraper
-from utility_commons import *
+
 import json
 import requests
 import re
+from scrapers import Scraper
+from utility_commons import *
+
 
 class Fang(Scraper):
     def __init__(self, city):

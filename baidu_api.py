@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+Created on June 24th 2018
 
-import keys
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 import random
 import time
 import urllib
@@ -8,6 +13,7 @@ import gecodeconvert as gc
 from aip import AipOcr
 from default_api import default_api
 from utility_commons import getLogger, get_nested_value
+import keys
 
 logger = getLogger('scrapy')
 
