@@ -19,6 +19,7 @@ logger = getLogger('scrapy')
 
 
 class Baidu_map(default_api):
+    # Required api input, 'api type': [corresponding keys]
     _api_keys = {
         'place': ['query', 'tag', 'region'],  # specific keyword
         'around': ['query', 'tag', 'location', 'radius'],  # poi of round area, <lat, lon>
@@ -26,6 +27,7 @@ class Baidu_map(default_api):
         'detail': ['uid', 'uids']
     }
 
+    # Default api parameters
     _default_kwargs = {
         'city_limit': 'true',
         'scope': '1',  # 1-basic return, 2-detail return
@@ -37,8 +39,10 @@ class Baidu_map(default_api):
         'ak': keys.baidu['map_ak']
     }
 
+    # Alternative keyword of parameters along with api class
     _alter_kwargs = {
         'sign': 'sn',
+        'keyword': 'query',
         'page': 'page_num',
         'lat': 'lat',
         'lon': 'lng'
@@ -68,15 +72,17 @@ class Baidu_map(default_api):
         raw_str = urllib.parse.quote(query, safe="/:=&?#+!$,;'@()*[]") + keys.baidu['map_sk']
         return self.get_md5(urllib.parse.quote_plus(raw_str))
 
+    # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Baidu_map, self).query(source_df=source_df, **kwargs)
         if not results.empty:
-            results[['MapIT_lon', 'MatIT_lat']] = results.apply(
+            results[['MapIT_lon', 'MapIT_lat']] = results.apply(
                 lambda x: self.geocode_convert(float(x['lng']), float(x['lat'])),
                 axis=1)
 
         return results
 
+    # Check if response valid
     def validate_response(self, api_response):
         # Validate response
         if not api_response:
@@ -94,16 +100,17 @@ class Baidu_map(default_api):
 
 
 class Baidu_translate(default_api):
-
+    # Required api input
     _api_keys = {'translate': ['q', 'from', 'to'],
                  }
 
+    # Default api parameters
     _default_kwargs = {'appid': keys.baidu['translate_id'],
                        'salt': str(random.randint(32768, 65536)),
-                       'from': 'auto',  # 1-basic return, 2-detail return
+                       'from': 'auto',
                        'to': 'en',
                        }
-
+    # Alternative keyword of parameters along with api class
     _alter_kwargs = {'sign': 'sign',
                      'keyword': 'q',
                      }
@@ -117,6 +124,7 @@ class Baidu_translate(default_api):
                  + keys.baidu['translate_sk']
         return self.get_md5(raw_sn)
 
+    # Check if response valid
     def validate_response(self, api_response):
 
         if not api_response:
@@ -170,7 +178,7 @@ if __name__ == '__main__':
     from utility_commons import TARGET_DIR
     import pandas as pd
     df = pd.DataFrame()
-    df = df.append([{'query': '喜茶', 'region': '广州'}, {'query': '一点点', 'region': '广州'}], ignore_index=True)
+    df = df.append([{'query': 'zara', 'region': 'Beijing'}, {'query': 'jll', 'region': 'Shanghai'}], ignore_index=True)
     bm = Baidu_map()
     r = bm.query(df)
     print(r)

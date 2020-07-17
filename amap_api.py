@@ -15,7 +15,7 @@ logger = getLogger('Amap')
 
 
 class Amap(default_api):
-    # Map api type to input parameter
+    # Required api input, 'api type': [corresponding keys]
     _api_keys = {
         'text': ['keywords', 'types', 'city'],  # specific keyword
         'around': ['keywords', 'types', 'location', 'radius', 'city'],  # poi of round area, <lon, lat>
@@ -23,6 +23,7 @@ class Amap(default_api):
         'detail': ['id']
     }
 
+    # Default api parameters
     _default_kwargs = {
         'citylimit': True,
         'offset': '1',
@@ -31,6 +32,7 @@ class Amap(default_api):
         'key': keys.amap['map_ak']
     }
 
+    # Alternative keyword of parameters along with api class
     _alter_kwargs = {
         'sign': 'sig',
         'keyword': 'keywords',
@@ -46,11 +48,12 @@ class Amap(default_api):
     def geocode_convert(lon, lat):
         return pd.Series(gc.gcj02_to_wgs84(lon, lat))
 
+    # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Amap, self).query(source_df=source_df, **kwargs)
         if not results.empty:
             results[['lon', 'lat']] = results['location'].str.split(',', 1, expand=True)
-            results[['MapIT_lon', 'MatIT_lat']] = results.apply(
+            results[['MapIT_lon', 'MapIT_lat']] = results.apply(
                 lambda x: self.geocode_convert(float(x['lon']), float(x['lat'])),
                 axis=1)
         return results
@@ -63,6 +66,7 @@ class Amap(default_api):
 
         return self.get_md5(raw_str)
 
+    # Check if response valid
     def validate_response(self, api_response):
         # Validate response
         if not api_response:
