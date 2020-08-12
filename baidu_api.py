@@ -9,7 +9,7 @@ Created on June 24th 2018
 import random
 import time
 import urllib
-import gecodeconvert as gc
+import geocodeconvert as gc
 from aip import AipOcr
 from default_api import default_api
 from utility_commons import getLogger, get_nested_value
@@ -178,7 +178,8 @@ if __name__ == '__main__':
     from utility_commons import TARGET_DIR
     import pandas as pd
     df = pd.DataFrame()
-    df = df.append([{'query': 'zara', 'region': 'Beijing'}, {'query': 'jll', 'region': 'Shanghai'}], ignore_index=True)
-    bm = Baidu_map()
+    df = df.append([{'q': '', 'from': 'cn', 'to': 'en'}], ignore_index=True)
+    print(df)
+    bm = Baidu_translate()
     r = bm.query(df)
     print(r)

@@ -6,7 +6,7 @@ Created on June 24th 2018
 """
 
 
-import gecodeconvert as gc
+import geocodeconvert as gc
 from default_api import default_api
 from utility_commons import getLogger, get_nested_value
 import keys
@@ -76,6 +76,7 @@ class Amap(default_api):
             logger.error('Response error, status: {}'.format(api_response['status']))
         else:
             one_call = list()
+            print(api_response)
             for result in api_response['pois']:
                 flat_record = get_nested_value(result)
                 one_call.append(flat_record)
@@ -88,7 +89,10 @@ if __name__ == '__main__':
 
     from utility_commons import excel_to_df, df_to_excel
     amap = Amap('text')
-    input = pd.DataFrame()
-    input = excel_to_df('国际综合排行', sheet_name='Query')
-    df = amap.query(input)
-    df_to_excel(df, '国际综合排行')
+    df = pd.DataFrame()
+    df = df.append([{'keywords': '东风东路5号', 'city': 'guangzhou', 'types': '120000'}], ignore_index=True)
+
+    # input = excel_to_df('国际综合排行', sheet_name='Query')
+    df = amap.query(df)
+    df_to_excel(df, 'address')
+    print(df)
