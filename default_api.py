@@ -12,7 +12,7 @@ import hashlib
 from urllib import parse
 from utility_commons import getLogger
 
-logger = getLogger('scrapy')
+logger = getLogger(__name__)
 
 
 class default_api:
@@ -63,8 +63,8 @@ class default_api:
         try:
             response = requests.get(query).json()
             # time.sleep(random.randint(1, 2))
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception('Fail to request.')
             return None
 
         return response

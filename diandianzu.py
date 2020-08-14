@@ -10,23 +10,22 @@ import time
 import re
 import db
 import utility_email as em
-from utility_commons import *
+from utility_commons import PATH, TIME, getLogger, timeout
 from scrapers import TwoStepScraper
 import keys
 
 SITE = 'Diandianzu'
 DETAIL_TABLE = 'Scrapy_Diandianzu'
 INFO_TABLE = 'Scrapy_Diandianzu_Info'
-LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
+LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(filename)s %(funcName)s %(lineno)d - %(message)s')
-logger = getLogger(SITE)
+logger = getLogger(__name__)
 
 
 class Diandianzu(TwoStepScraper):
-    def __init__(self, city):
-        TwoStepScraper.__init__(self, city)
-        self.search_base = 'https://{}.diandianzu.com'.format(city)
+    def __init__(self, entity):
+        TwoStepScraper.__init__(self, entity)
+        self.search_base = 'https://{}.diandianzu.com'.format(entity)
         self.search_suffix = '/listing/p{}/'
 
     # Get items in one page
@@ -34,7 +33,7 @@ class Diandianzu(TwoStepScraper):
         list_link = self.search_suffix.format(pagenum)
         list_soup = self.search(url=self.search_base + list_link)
 
-        item_list = list_soup.find_all('div', attrs={'class': 'list-item-link'})#list_soup.find_all('a', attrs={'class': 'tj-pc-listingList-title-click'})
+        item_list = list_soup.find_all('div', attrs={'class': 'list-item-link'})
         return item_list
 
     # Get detail of one item
@@ -51,16 +50,16 @@ class Diandianzu(TwoStepScraper):
 
         try:
             item_detail_title = one_item_soup.find('div', attrs={'class': 'ftitle clearfix'}).find_all('div')
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception('Fail to get title.')
             return False
         if not item_detail_title:
             return False
         try:
             detail_list = one_item_soup.find('div', attrs={'class': 'fbody'}).find_all('div', attrs={'class': re.compile('fitem .*')})
             logger.info('Building Name: {}     Office Count: {}'.format(item_info['Name'], len(detail_list)))
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception('Fail to get detail list.')
             return False
 
         # Go through detail list of one item
@@ -81,7 +80,7 @@ class Diandianzu(TwoStepScraper):
                 item_detail['总价'] = item_detail['单价 · 总价'].split()[1].strip()
                 del item_detail['单价 · 总价']
 
-            item_detail['Source_ID'] = city + '_' + row['data-id']
+            item_detail['Source_ID'] = self.entity + '_' + row['data-id']
             item_detail['Property'] = item_info['Name']
             item_detail['Property_ID'] = item_info['Source_ID']
             item_detail_list.append(item_detail)
@@ -95,12 +94,12 @@ class Diandianzu(TwoStepScraper):
         item_name = item.find('a', attrs={'class': 'tj-pc-listingList-title-click'}).text
         try:
             item_id = re.compile(r'\d+').search(item_link).group(0)
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception('Fail to get item id')
             return False
 
         item_info = dict()
-        item_info['Source_ID'] = city + '_' + item_id
+        item_info['Source_ID'] = self.entity + '_' + item_id
         item_info['Name'] = item_name
         item_info['City'] = self.entity
 
@@ -112,8 +111,8 @@ class Diandianzu(TwoStepScraper):
             item_info_raw = item_detail.find('div', attrs={'class': 'desc-box building-box left-box clearfix'}).find_all('li')
             for info_raw in item_info_raw:
                 item_info[info_raw.find('span', attrs={'class': 'f-title'}).text] = info_raw.find('span', attrs={'class': 'f-con'}).text
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception('Fail to get item info')
 
         return item_info
 
@@ -124,7 +123,9 @@ if __name__ == '__main__':
 
     with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
 
-        existing_cities = scrapydb.select(table_name=LOG_TABLE_NAME, source=SITE, customized={'Timestamp': ">='{}'".format(TODAY), 'City': 'IN ({})'.format('\'' + '\', \''.join(list(cities)) + '\'')})
+        existing_cities = scrapydb.select(table_name=PATH['LOG_TABLE_NAME'], source=SITE,
+                                          customized={'Timestamp': ">='{}'".format(TIME['TODAY']), 'City': 'IN ({})'.
+                                          format('\'' + '\', \''.join(list(cities)) + '\'')})
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
     for city in cities_run:
@@ -132,7 +133,8 @@ if __name__ == '__main__':
         logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
         with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
-            scrapydb.upload(df=one_city.df, table_name=DETAIL_TABLE, schema='CHN_MKT', start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
+            scrapydb.upload(df=one_city.df, table_name=DETAIL_TABLE, schema='CHN_MKT', start=start, end=end,
+                            timestamp=PATH['TIMESTAMP'], source=SITE, city=city)
             scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True)
 
     # for city in cities:

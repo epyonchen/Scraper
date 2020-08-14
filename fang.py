@@ -9,8 +9,10 @@ import json
 import requests
 import re
 from scrapers import Scraper
-from utility_commons import *
+from utility_commons import getLogger, timeout, df_to_excel
 
+
+logger = getLogger(__name__)
 
 class Fang(Scraper):
     def __init__(self, city):
@@ -44,8 +46,8 @@ class Fang(Scraper):
             list_soup = self.search(url=redirect_url, headers=self.headers)
             try:
                 item_list = list_soup.find_all('dl', attrs={'dataflag': 'bg'})
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger('Fail to get item list')
                 return None
 
             if item_list is not None:
