@@ -8,12 +8,12 @@ Created on July 1st 2019
 import random
 import time
 import re
-from utility_commons import *
+from utility_commons import PATH, getLogger, timeout
 from scrapers import TwoStepScraper
 
 SITE = 'Expo'
 TABLENAME = 'Scrapy_' + SITE
-LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
+LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 logger = getLogger(SITE)
 
 
@@ -36,8 +36,8 @@ class Expo(TwoStepScraper):
         item_link = item.find('a')['href']
         try:
             item_id = re.compile(r'\d+').search(item_link).group(0)
-        except Exception as e:
-            print(e)
+        except Exception:
+            logger.exception('Fail to get item id')
             return False
         item_name = item.find('a')['title']
         print(item_name)
@@ -48,7 +48,7 @@ class Expo(TwoStepScraper):
             detail_list = one_item_soup.find_all('dl', attrs={'class': re.compile(r'tuan-info.*')})
             # logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception as e:
-            logger.error(e)
+            logger.exception('Fail to get detail list')
             return False
 
         # Go through detail list of one item
@@ -71,18 +71,18 @@ class Expo(TwoStepScraper):
                     og0 = og.sub('', info.text).strip()
                     item_detail[og0.split('：')[0]] = og0.split('：')[1]
                 except:
-                    1
+                    logger.exception()
                 try:
                     og1 = og.search(info.text).group(0).strip()
                     item_detail[og1.split('：')[0]] = og1.split('：')[1]
                 except:
-                    1
+                    logger.exception()
 
         try:
             detail_list2 = one_item_soup.find('div', attrs={'class': 'tuan-dside'}).find_all('li')
             # logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception()
             return False
 
         for row2 in detail_list2:

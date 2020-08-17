@@ -124,8 +124,9 @@ if __name__ == '__main__':
     with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
 
         existing_cities = scrapydb.select(table_name=PATH['LOG_TABLE_NAME'], source=SITE,
-                                          customized={'Timestamp': ">='{}'".format(TIME['TODAY']), 'City': 'IN ({})'.
-                                          format('\'' + '\', \''.join(list(cities)) + '\'')})
+                                          customized={
+                                              'Timestamp': ">='{}'".format(TIME['TODAY']),
+                                              'City': 'IN ({})'.format('\'' + '\', \''.join(list(cities)) + '\'')})
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
     for city in cities_run:

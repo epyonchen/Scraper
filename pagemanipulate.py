@@ -56,7 +56,7 @@ class Page:
             self.driver.get(self.base)
             self.soup = self.driver.page_source
         except Exception:
-            logger.error('Fail to open url {}'.format(url))
+            logger.exception('Fail to open url {}'.format(url))
             exit(1)
 
     def click(self, path):

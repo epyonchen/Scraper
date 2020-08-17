@@ -159,9 +159,9 @@ class Baidu_ocr(default_api):
         bin_image = self.ocr_image_process(image, path, bin_threshold)
         try:
             result = self.client.basicGeneral(bin_image, kwargs)
-        except Exception as e:
+        except Exception:
             self.renew_client_ocr()
-            logger.exception(e)
+            logger.exception('OCR api query fail')
             return False
 
         if ('words_result_num' in result.keys()) and result['words_result_num'] > 0:
