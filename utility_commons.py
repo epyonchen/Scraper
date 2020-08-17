@@ -50,85 +50,77 @@ __default_logger = 'scrapy'
 __log_map = dict()
 __log_file_path = PATH['LOG_DIR'] + r'\{}.log'
 # Logging config
-LOG_CONFIG = {
-    'version': 1,  # required
-    'disable_existing_loggers': True,  # this config overrides all other loggers
-    'formatters': {
-        'brief': {
-            'format': '%(levelname)s: %(message)s'
-        },
-        'precise': {
-            'format': '%(levelname)s - %(filename)s[line:%(lineno)s]: %(message)s'
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'precise',
-            # 'encoding': 'utf-8'
-        },
-        # 'main': {
-        #     'level': 'DEBUG',
-        #     'class': 'logging.FileHandler',
-        #     'formatter': 'precise',
-        #     'filename': PATH['LOG_DIR'] + '\\' + __default_logger + '.log',
-        #     'mode': 'w',
-        #     'encoding': 'utf-8'
-        # },
-        # 'module': {
-        #     'level': 'DEBUG',
-        #     'class': 'logging.FileHandler',
-        #     'formatter': 'precise',
-        #     'filename': PATH['LOG_DIR'] + '\\' + __default_logger + '.log',
-        #     'mode': 'w',
-        #     'encoding': 'utf-8'
-        # },
-    },
-    'loggers': {
-        __default_logger: {
-            'level': 'DEBUG',
-            'handlers': ['console'],
-            'propagate': True,
-        }
-    }
-}
 
 
 # Return logger, display INFO level logs in console and record ERROR level logs in file
 def getLogger(logger_name=__default_logger):
-    # TODO: Unify logger
-    # if site in logging.Logger.manager.loggerDict.keys():
-    #     return logging.getLogger(site)
-    # elif site != __default_logger:
-    #     site = __default_logger + '.' + site
-    global __log_map
+    LOG_CONFIG = {
+        'version': 1,  # required
+        'disable_existing_loggers': True,  # this config overrides all other loggers
+        'formatters': {
+            'brief': {
+                'format': '%(levelname)s: %(message)s'
+            },
+            'precise': {
+                'format': '%(levelname)s - %(filename)s[line:%(lineno)s]: %(message)s'
+            },
+        },
+        'handlers': {
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+                'formatter': 'precise',
+                # 'encoding': 'utf-8'
+            },
+            'main': {
+                'level': 'DEBUG',
+                'class': 'logging.FileHandler',
+                'formatter': 'precise',
+                'filename': PATH['LOG_DIR'] + '\\' + __default_logger + '.log',
+                'mode': 'a',
+                'encoding': 'utf-8'
+            },
+            # 'module': {
+            #     'level': 'DEBUG',
+            #     'class': 'logging.FileHandler',
+            #     'formatter': 'precise',
+            #     'filename': PATH['LOG_DIR'] + '\\' + logger_name + '.log',
+            #     'mode': 'w',
+            #     'encoding': 'utf-8'
+            # },
+        },
+        'loggers': {
+            logger_name: {
+                'level': 'DEBUG',
+                'handlers': ['console', 'main'],
+                'propagate': True,
+            }
+        }
+    }
 
-    # logging.config.dictConfig(LOGGING_CONFIG)
-    # ans = logging.getLogger(logger_name)
-    # __log_map[logger_name] = ans
+    # TODO: Unify logger
+    global __log_map
 
     if logger_name not in __log_map:
         logging.config.dictConfig(LOG_CONFIG)
         ans = logging.getLogger(logger_name)
         __log_map[logger_name] = ans
-    print(__log_map)
 
     return __log_map.get(logger_name)
 
 
-def add_log_file(logger_name=__default_logger):
-    return 0
-
-
-def add_log_file_handler(logger_name=__default_logger, log_file=None, mode='w'):
-    handler = logging.FileHandler(PATH['LOG_DIR'] + '\\' + logger_name + '.log', mode='w')
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(levelname)s - %(filename)s[line:%(lineno)s]: %(message)s')
-    handler.setFormatter(formatter)
-    handler.encoding = 'utf-8'
-    logger = getLogger(logger_name)
-    logger.addHandler(handler)
+# def add_log_file(logger_name=__default_logger):
+#     return 0
+#
+#
+# def add_log_file_handler(logger_name=__default_logger, log_file=None, mode='w'):
+#     handler = logging.FileHandler(PATH['LOG_DIR'] + '\\' + logger_name + '.log', mode=mode)
+#     handler.setLevel(logging.INFO)
+#     formatter = logging.Formatter('%(levelname)s - %(filename)s[line:%(lineno)s]: %(message)s')
+#     handler.setFormatter(formatter)
+#     handler.encoding = 'utf-8'
+#     logger = getLogger(logger_name)
+#     logger.addHandler(handler)
 
 
 # Kill process if timeout
