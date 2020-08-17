@@ -9,15 +9,16 @@ Created on June 24th 2018
 import re
 import requests
 import db
+import pandas as pd
 import pagemanipulate as pm
 import utility_email as em
 from bs4 import BeautifulSoup
-from utility_commons import *
+from utility_commons import PATH, TIME, getLogger
 import keys
 
 SITE = 'FirePublic'
 TABLENAME = 'Scrapy_FirePublic'
-LOG_PATH = LOG_DIR + '\\' + SITE + '.log'
+LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 logger = getLogger(SITE)
 total_page = 0
 
@@ -112,14 +113,14 @@ class FirePublic:
             try:
                 content = soup.find('table', attrs={'id': 'ctl00_MainContent_gridQTCG'}).find_all('td')
             # If error, renew form data. If form data has already renewed, stop search
-            except Exception as e:
+            except Exception:
                 if fp.switch:
                     fp.renew_session()
                     logger.info('Restart at page {}'.format(i))
                     continue
 
                 else:
-                    logger.exception('Stop run due to: {}'.format(e))
+                    logger.exception('Stop run')
                     fp.switch = True
                     break
 
@@ -145,13 +146,14 @@ class FirePublic:
 
 if __name__ == '__main__':
     with db.Mssql(config=keys.dbconfig) as scrapydb, em.Email() as scrapyemail:
-        pre_page = scrapydb.select(table_name=LOG_TABLE_NAME, column_name=['End'], source='FirePublic')
+        pre_page = scrapydb.select(table_name=PATH['LOG_TABLE_NAME'], column_name=['End'], source='FirePublic')
         pre_page = pre_page['End'].astype(int).max()
         df, start, end = FirePublic.run(from_page=pre_page)
 
         if not df.empty:
             logger.info('Start from page {}, stop at page {}.'.format(start, end))
-            scrapydb.upload(df=df, table_name=TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end), timestamp=TIMESTAMP, source=SITE)
+            scrapydb.upload(df=df, table_name=TABLENAME, new_id=True, dedup=True, start=str(start), end=str(end),
+                            timestamp=TIME['TIMESTAMP'], source=SITE)
         else:
             logger.info('Fail this run at page {}.'.format(end))
         if end < total_page:

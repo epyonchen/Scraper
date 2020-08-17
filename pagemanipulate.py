@@ -13,7 +13,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from utility_commons import *
+from utility_commons import getLogger
 
 _DEFAULT_PREFERENCE = {
     'browser.download.folderList': 2,
@@ -23,7 +23,8 @@ _DEFAULT_PREFERENCE = {
     'browser.download.manager.focusWhenStarting': False,
     'browser.helperApps.neverAsk.saveToDisk': 'text/csv/xls/xlsx'
 }
-logger = getLogger('scrapy')
+
+logger = getLogger(__name__)
 
 
 class Page:
@@ -45,7 +46,7 @@ class Page:
         try:
             tab = self.driver.find_element_by_xpath(path)
             return tab
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             logger.info('Xpath: {} not exists.'.format(path))
             return False
 
@@ -54,8 +55,8 @@ class Page:
         try:
             self.driver.get(self.base)
             self.soup = self.driver.page_source
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception('Fail to open url {}'.format(url))
             exit(1)
 
     def click(self, path):
@@ -67,18 +68,17 @@ class Page:
                 self.soup = self.driver.page_source
                 # print(self.soup)
                 return self.driver.page_source
-            except TimeoutException as e:
+            except TimeoutException:
                 self.renew(self.base)
-                logger.exception(e)
+                logger.exception('Timeout')
                 # return False
 
     def send(self, path, value):
         try:
             if self.exist(path):
                 self.driver.find_element_by_xpath(path).send_keys(value)
-
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception('Fail to send {} to {}'.format(value, path))
 
     def renew(self, url='http://www.example.com', page_load_strategy='eager', **preference):
         if hasattr(self, 'driver'):

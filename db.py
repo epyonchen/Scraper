@@ -9,9 +9,9 @@ Created on Jan 24th 2019
 import pymssql
 import pandas as pd
 import pyodbc
-from utility_commons import LOG_TABLE_NAME, getLogger
+from utility_commons import PATH, getLogger
 
-logger = getLogger('scrapy')
+logger = getLogger(__name__)
 
 
 class Mssql:
@@ -22,7 +22,8 @@ class Mssql:
         self.schema = config['schema']
         if pkg == 'pymssql':
             if ('user' in config.keys()) and ('password' in config.keys()):
-                self.conn = pymssql.connect(server=self.server, database=self.database, user=config['user'], password=config['password'])
+                self.conn = pymssql.connect(server=self.server, database=self.database,
+                                            user=config['user'], password=config['password'])
             else:
                 self.conn = pymssql.connect(server=self.server, database=self.database)
             self.cur = self.conn.cursor()
@@ -33,9 +34,12 @@ class Mssql:
             else:
                 self.driver = 'SQL Server Native Client 11.0'
             if ('user' in config.keys()) and ('password' in config.keys()):
-                self.conn = pyodbc.connect.connect('DRIVER={};SERVER={};DATABASE={};UID={};PWD={}'.format(self.driver, self.server, self.database, config['username'], config['password']))
+                self.conn = pyodbc.connect.connect(
+                    'DRIVER={};SERVER={};DATABASE={};UID={};PWD={}'.
+                        format(self.driver, self.server, self.database, config['username'], config['password']))
             else:
-                self.conn = pyodbc.connect.connect('DRIVER={};SERVER={};DATABASE={};Trusted_Connection=yes;'.format(self.driver, self.server, self.database))
+                self.conn = pyodbc.connect.connect('DRIVER={};SERVER={};DATABASE={};Trusted_Connection=yes;'.
+                                                   format(self.driver, self.server, self.database))
             self.cur = self.conn.cursor()
         else:
             logger.error('Wrong package.')
@@ -45,6 +49,7 @@ class Mssql:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # TODO: exception fix
         if exc_type:
             logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         logger.info('Disconnect database: {}'.format(self.database))
@@ -60,7 +65,8 @@ class Mssql:
         return self.run(query)
 
     # insert df into table
-    def upload(self, df, table_name, new_id=True, dedup=False, dedup_id='Source_ID', start='1', end='0', schema=None, **logs):
+    def upload(self, df, table_name, new_id=True, dedup=False, dedup_id='Source_ID', start='1', end='0',
+               schema=None, **logs):
         table = self.get_table(table_name, schema)
         column_name = list(df)
         value_default = '({})'
@@ -120,7 +126,8 @@ class Mssql:
         existing_columns = list(self.select(table_name=table_name, column_name='top 0 *'))
         insert_columns = list(set(existing_columns) & set(column_name))
         insert_columns = self.get_columns(insert_columns) # '[' + '], ['.join(insert_columns) + ']'
-        insert_query = 'INSERT INTO {} ({}) (SELECT {} FROM #Temp_{} {})'.format(table, insert_columns, insert_columns, table_name, where_cond)
+        insert_query = 'INSERT INTO {} ({}) (SELECT {} FROM #Temp_{} {})'.format(
+            table, insert_columns, insert_columns, table_name, where_cond)
 
         drop_temp = 'DROP TABLE #Temp_{}'.format(table_name)
         if self.run(insert_query):
@@ -214,8 +221,8 @@ class Mssql:
             else:
                 self.conn.commit()
                 return True
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception('Fail to call sp')
             return False
 
     # Update one column of value with/without condition
@@ -256,8 +263,8 @@ class Mssql:
             self.cur.execute(query)
             self.conn.commit()
             return True
-        except Exception as e:
-            logger.exception('SQL exception: {}'.format(e))
+        except Exception:
+            logger.exception('SQL execution failed.')
             self.conn.rollback()
             return False
 
@@ -285,12 +292,13 @@ class Mssql:
 
         log_column_name = ['UID', 'Start', 'End', 'Table'] + list(logs.keys()) #'[UID], [Start], [End], [Table], [' + '], ['.join(logs.keys()) + ']'
 
-        if not self.exist(LOG_TABLE_NAME):
-            self.create_table(schema=schema, table_name=LOG_TABLE_NAME, column_name=log_column_name)
+        if not self.exist(PATH['LOG_TABLE_NAME']):
+            self.create_table(schema=schema, table_name=PATH['LOG_TABLE_NAME'], column_name=log_column_name)
         log_values = 'N\'' + '\',N\''.join([start, end, table_name]) + '\', N\'' + '\',N\''.join(logs.values()) + '\''
-        log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(LOG_TABLE_NAME, log_values)
+        log_values = '(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()), {})'.format(PATH['LOG_TABLE_NAME'], log_values)
 
-        query = 'INSERT INTO {} ({}) VALUES {}'.format(self.get_table(schema=schema, table_name=LOG_TABLE_NAME), self.get_columns(column_name=log_column_name), log_values)
+        query = 'INSERT INTO {} ({}) VALUES {}'.format(self.get_table(schema=schema, table_name=PATH['LOG_TABLE_NAME']),
+                                                       self.get_columns(column_name=log_column_name), log_values)
 
         if self.run(query):
             logger.info('Log current job.')

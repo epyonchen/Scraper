@@ -12,14 +12,17 @@ import hashlib
 from urllib import parse
 from utility_commons import getLogger
 
-logger = getLogger('scrapy')
+logger = getLogger(__name__)
 
 
 class default_api:
+    # Required api input, 'api type': [corresponding keys]
     _api_keys = {'api': []}
 
+    # Default api parameters
     _default_kwargs = {}
 
+    # Alternative keyword of parameters along with api class
     _alter_kwargs = {'sign': 'sign',
                      'page': 'page',
                      'lat': 'lat',
@@ -35,7 +38,7 @@ class default_api:
         parameters = self._default_kwargs.copy()
         source_input_keys = set(self.input_keys).intersection(list(source_row.keys())) \
             if source_row is not None else None
-
+        # Check if required keywords in inputs
         if source_input_keys:
             for input_key in source_input_keys:
                 parameters.update({input_key: str(source_row[input_key])})
@@ -60,8 +63,8 @@ class default_api:
         try:
             response = requests.get(query).json()
             # time.sleep(random.randint(1, 2))
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.exception('Fail to request.')
             return None
 
         return response
@@ -108,7 +111,7 @@ class default_api:
     def validate_response(api_response):
         return api_response
 
-    # Convert bd to wgs
+    # Convert lat lon
     @staticmethod
     def geocode_convert(lat, lon):
         return lat, lon

@@ -63,8 +63,8 @@ class Beike(TwoStepScraper):
         list_link = self.search_base + self.search_url
         try:
             item_list = requests.get(list_link, params=_params_item)
-        except Exception as e:
-            logger.error('Cannot request api. {}'.format(e))
+        except Exception:
+            logger.exception('Cannot request api.')
             self.success = False
             return None
 
@@ -94,8 +94,8 @@ class Beike(TwoStepScraper):
         detail_link = self.search_base + self.search_url_detail
         try:
             item_details = requests.get(detail_link, params=_params_detail)
-        except Exception as e:
-            logger.error('Cannot request api. {}'.format(e))
+        except Exception:
+            logger.exception('Cannot request api.')
             self.success = False
             return None, [item_info_list]
 

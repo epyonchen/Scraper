@@ -11,7 +11,7 @@ import pandas as pd
 import pagemanipulate as pm
 from utility_commons import getLogger
 
-logger = getLogger('scrapy')
+logger = getLogger(__name__)
 
 
 class Scraper:
@@ -29,7 +29,7 @@ class Scraper:
     # Query one link
     def search(self, url=None, encoding=None, headers=None):
         if not url:
-            logger.exception('Search url missing.')
+            logger.error('Search url missing.')
             return None
 
         # renew session one time if error
@@ -41,12 +41,12 @@ class Scraper:
                 soup = BeautifulSoup(response.text, 'lxml')
                 self.switch = True
                 return soup
-            except Exception as e:
+            except Exception:
                 if self.switch:
                     self.renew_session()
                     continue
                 else:
-                    logger.exception(e)
+                    logger.exception('Fail to request {}'.format(url))
                     return None
 
     # Renew session and cookies
@@ -62,8 +62,8 @@ class Scraper:
                 self.session.cookies.update(self.cookies)
                 self.switch = False
             return True
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            logger.exception('Fail to renew session.')
             return None
 
     # Get item list in one page for one entity
@@ -83,7 +83,7 @@ class Scraper:
         item_info_load = []
 
         if not entity:
-            logger.exception('Entity is missing.')
+            logger.error('Entity is missing.')
             return None, str(from_page), str(page)
 
         logger.info('Start querying {}.'.format(entity))
@@ -129,7 +129,7 @@ class TwoStepScraper(Scraper):
         item_detail_load = []
 
         if not entity:
-            logger.exception('Entity is missing.')
+            logger.error('Entity is missing.')
             return None, str(from_page), str(page)
 
         logger.info('Start querying {}.'.format(one_entity.entity))
