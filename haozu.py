@@ -32,11 +32,14 @@ class Haozu(TwoStepScraper):
     def get_item_list(self, pagenum):
         list_link = self.search_suffix.format(pagenum)
         list_soup = self.search(url=self.search_base + list_link)
-        item_list = list_soup.find('ul',  attrs={'class': 'listCon propertyList'}).\
-            find_all('h1', attrs={'class': 'h1-title'})
-        if len(item_list) > 0:
-            item_list = item_list[1:]
-        return item_list
+        try:
+            item_list = list_soup.find('ul',  attrs={'class': 'listCon propertyList'}).\
+                find_all('h1', attrs={'class': 'h1-title'})
+        except Exception:
+            logger.exception('Fail to get item list')
+            return None
+
+        return item_list[1:] if len(item_list) > 0 else None
 
     # Get detail of one item
     def get_item_detail(self, item):
@@ -44,9 +47,9 @@ class Haozu(TwoStepScraper):
         try:
             item_link = item.a['href']
         except Exception:
-            print(item)
             logger.exception('Fail to get item link')
             return None
+
         item_id = str(re.compile(r'\d+').search(item_link).group(0))
         item_name = item.a.text
         item_detail_list = []
@@ -125,7 +128,7 @@ class Haozu(TwoStepScraper):
 
 if __name__ == '__main__':
 
-    cities = ['sh'] #'gz', 'sz', 'sh', 'bj', 'cd'
+    cities = ['gz', 'sz', 'sh', 'bj', 'cd']
     with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
         existing_cities = scrapydb.select(table_name=PATH['LOG_TABLE_NAME'], source=SITE,
                                           customized={

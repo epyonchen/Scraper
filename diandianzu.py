@@ -32,8 +32,11 @@ class Diandianzu(TwoStepScraper):
     def get_item_list(self, pagenum):
         list_link = self.search_suffix.format(pagenum)
         list_soup = self.search(url=self.search_base + list_link)
-
-        item_list = list_soup.find_all('div', attrs={'class': 'list-item-link'})
+        try:
+            item_list = list_soup.find_all('div', attrs={'class': 'list-item-link'})
+        except Exception:
+            logger.exception('Fail to get item list')
+            return None
         return item_list
 
     # Get detail of one item
