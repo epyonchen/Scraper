@@ -58,5 +58,5 @@ class CityRenewal(Scraper):
 
 
 if __name__ == '__main__':
-    one_entity, start, end = timeout(func=CityRenewal.run, time=18000, entity='sz', from_page=1, to_page=1000)
+    one_entity, start, end = CityRenewal.run(entity='sz', from_page=1, to_page=1000)
     df_to_excel(one_entity.df, '深圳城市更新')

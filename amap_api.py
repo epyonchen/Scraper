@@ -76,7 +76,6 @@ class Amap(default_api):
             logger.error('Response error, status: {}'.format(api_response['status']))
         else:
             one_call = list()
-            print(api_response)
             for result in api_response['pois']:
                 flat_record = get_nested_value(result)
                 one_call.append(flat_record)
@@ -89,10 +88,9 @@ if __name__ == '__main__':
 
     from utility_commons import excel_to_df, df_to_excel
     amap = Amap('text')
-    df = pd.DataFrame()
-    df = df.append([{'keywords': '东风东路5号', 'city': 'guangzhou', 'types': '120000'}], ignore_index=True)
+    # df = pd.DataFrame()
+    # df = df.append([{'keywords': '东风东路5号', 'city': 'guangzhou', 'types': '120000'}], ignore_index=True)
 
-    # input = excel_to_df('国际综合排行', sheet_name='Query')
-    df = amap.query(df)
-    df_to_excel(df, 'address')
-    print(df)
+    input = excel_to_df('amap_api', sheet_name='Sheet2')
+    df = amap.query(input)
+    df_to_excel(df, 'amap_result')

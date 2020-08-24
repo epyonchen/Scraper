@@ -12,12 +12,13 @@ import db
 import pandas as pd
 import pagemanipulate as pm
 import utility_email as em
+from func_timeout import func_set_timeout
 from PIL import Image
 from baidu_api import Baidu_ocr
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from utility_commons import PATH, TIME, getLogger, timeout
+from utility_commons import PATH, TIME, getLogger
 import keys
 
 SCREENSHOT_PATH = PATH['PIC_DIR'] + r'\screen_shot.png'
@@ -105,6 +106,7 @@ class Tax:
                 return False
 
     # Login
+    @func_set_timeout(timeout=3600)
     def login(self):
         while True:
 
@@ -182,21 +184,13 @@ class Tax:
         self.cookies = requests.cookies.RequestsCookieJar()
 
     @classmethod
-    def run(cls, entity, server, link, username, password, time=3600):
+    @func_set_timeout(timeout=3600)
+    def run(cls, entity, server, link, username, password):
         t = cls(link, username, password)
-
-        # # Return false when function takes too much time
-        # def _timeout(func, timeout=time, **kwargs):
-        #     try:
-        #         result = func_timeout(timeout=timeout, func=func, kwargs=kwargs)
-        #         return result
-        #     except FunctionTimedOut as e:
-        #         logger.error('Timeout:\n%s', e)
-        #         return False
 
         while True:
             # Exit with error when login takes too much time
-            timeout(func=t.login)
+            t.login()
 
             success = t.get()
             if success:
@@ -263,9 +257,8 @@ if __name__ == '__main__':
     for index, row in access_run.iterrows():
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.
                     format(row['Entity_Name'], row['Server']))
-        tax_df, tax_detail_df = timeout(func=Tax.run, time=3600, entity=row['Entity_Name'],
-                                        server=row['Server'], link=row['Link'], username=row['User_Name'],
-                                        password=row['Password'])
+        tax_df, tax_detail_df = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'],
+                                        username=row['User_Name'], password=row['Password'])
 
         # Upload to database
         scrapydb = db.Mssql(keys.dbconfig)

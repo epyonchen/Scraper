@@ -8,7 +8,7 @@ Created on July 1st 2019
 import random
 import time
 import re
-from utility_commons import PATH, getLogger, timeout
+from utility_commons import PATH, getLogger
 from scrapers import TwoStepScraper
 
 SITE = 'Expo'
@@ -94,5 +94,5 @@ class Expo(TwoStepScraper):
         return [item_detail]
 
 if __name__ == '__main__':
-    one_city, start, end = timeout(func=Expo.run, time=18000, city='gz')
+    one_city, start, end = Expo.run(city='gz')
     one_city.df.to_excel(r'C:\Users\Benson.Chen\Desktop\Expo_GZ.xlsx', index=False, header=True, sheet_name='EXPO')
