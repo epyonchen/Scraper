@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import pagemanipulate as pm
 from utility_commons import getLogger
+from func_timeout import func_set_timeout
 
 logger = getLogger(__name__)
 
@@ -77,6 +78,7 @@ class Scraper:
         return self.df
 
     @classmethod
+    @func_set_timeout(timeout=18000)
     def run(cls, from_page=1, to_page=None, entity=None, step=1):
         page = from_page
         one_entity = cls(entity)
@@ -99,7 +101,7 @@ class Scraper:
                 item_info_load += item_list
             else:
                 logger.info('Page {} is empty. Stop this job.'.format(page))
-                # break
+                break
 
         logger.info('Total {} records, {} pages.'.format(str(len(item_info_load)), str(page - from_page)))
 

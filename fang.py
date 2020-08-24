@@ -9,7 +9,7 @@ import json
 import requests
 import re
 from scrapers import Scraper
-from utility_commons import getLogger, timeout, df_to_excel
+from utility_commons import getLogger, df_to_excel
 
 
 logger = getLogger(__name__)
@@ -17,8 +17,8 @@ logger = getLogger(__name__)
 class Fang(Scraper):
     def __init__(self, city):
         Scraper.__init__(self, city)
-        self.search_base = 'https://sz.esf.fang.com'
-        self.search_url = '/house-a089-b02092/h316-i3{}'
+        self.search_base = 'https://dg.esf.fang.com'
+        self.search_url = '/house-a0117/i3{}'
         # self.browser = pm.Page()
         self.headers = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -66,7 +66,7 @@ class Fang(Scraper):
 
                     except Exception as e:
                         print(e)
-                print(len(result_list))
+
                 return result_list
             else:
                 return None
@@ -83,5 +83,5 @@ class Fang(Scraper):
         return self.df
 
 if __name__ == '__main__':
-    one_entity, start, end = timeout(func=Fang.run, time=18000, entity='sz', from_page=1, to_page=100)
+    one_entity, start, end = Fang.run(entity='dg', from_page=1, to_page=43)
     df_to_excel(one_entity.df, 'fang')

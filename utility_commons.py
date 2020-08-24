@@ -112,6 +112,7 @@ def getLogger(logger_name=__default_logger, isjob=True):
             logging.config.dictConfig(LOG_CONFIG)
             ans = logging.getLogger(__default_logger)
             __log_map[__default_logger] = ans
+            __log_map['default'] = ans
 
         if logger_name != __default_logger:
             logger_name = __default_logger + '.' + logger_name
@@ -127,6 +128,7 @@ def getLogger(logger_name=__default_logger, isjob=True):
     return __log_map.get(logger_name)
 
 
+# Update log config, adding
 def _update_log_config(logger_name, default_logger):
     global LOG_CONFIG
     hanlder_config = {
@@ -139,6 +141,8 @@ def _update_log_config(logger_name, default_logger):
             'encoding': 'utf-8'
         }
     }
+
+    # Root logger doesn't use console handler
     logger_config = {
         logger_name: {
             'level': 'DEBUG',
@@ -151,38 +155,13 @@ def _update_log_config(logger_name, default_logger):
     LOG_CONFIG['loggers'].update(logger_config)
 
 
+# Get current job name
 def _get_job_name():
     import re
     module = sys.modules['__main__']
     name_pattern = re.compile(r'\w+\.py')
     name = re.search(name_pattern, str(module.__file__)).group(0)
     return name.replace(r'.py', '')
-
-
-def add_log_file(logger_name=__default_logger):
-    return 0
-
-
-def add_log_file_handler(logger_name=__default_logger, mode='w'):
-    handler = logging.FileHandler(PATH['LOG_DIR'] + '\\' + logger_name + '.log', mode=mode)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s %(levelname)s - %(filename)s[line:%(lineno)s]: %(message)s')
-    handler.setFormatter(formatter)
-    handler.encoding = 'utf-8'
-    logger = getLogger(logger_name)
-    logger.addHandler(handler)
-
-
-# Kill process if timeout
-def timeout(func, time=3000, **kwargs):
-    from func_timeout import func_timeout, FunctionTimedOut
-    try:
-        return func_timeout(timeout=time, func=func, kwargs=kwargs)
-    except FunctionTimedOut:
-        # TODO: set logger to main logger
-        logger = logging.getLogger(__default_logger)
-        logger.exception('Timeout')
-        exit(1)
 
 
 # Get nested dict

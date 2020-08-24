@@ -12,7 +12,7 @@ import db
 import keys
 import utility_email as em
 from scrapers import TwoStepScraper
-from utility_commons import PATH, TIME, getLogger, timeout
+from utility_commons import PATH, TIME, getLogger
 
 SITE = 'Haozu'
 PATH['DETAIL_TABLE'] = 'Scrapy_' + SITE
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
     for city in cities_run:
-        one_city, start, end = timeout(func=Haozu.run, time=18000, entity=city)  #
+        one_city, start, end = Haozu.run(entity=city)  #
         logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
         with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
