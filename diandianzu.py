@@ -138,7 +138,7 @@ if __name__ == '__main__':
 
         with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
             scrapydb.upload(df=one_city.df, table_name=DETAIL_TABLE, schema='CHN_MKT', start=start, end=end,
-                            timestamp=PATH['TIMESTAMP'], source=SITE, city=city)
+                            timestamp=TIME['TIMESTAMP'], source=SITE, city=city)
             scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True)
 
     # for city in cities:

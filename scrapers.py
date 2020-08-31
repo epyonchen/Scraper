@@ -75,7 +75,7 @@ class Scraper:
     # Format dataframe into db structure
     def format_df(self):
 
-        return self.df
+        return self
 
     @classmethod
     @func_set_timeout(timeout=18000)
@@ -107,7 +107,7 @@ class Scraper:
 
         if item_info_load:
             one_entity.df = one_entity.df.append(item_info_load, ignore_index=True, sort=False)
-        one_entity.df = one_entity.format_df()
+        one_entity = one_entity.format_df()
         return one_entity, str(from_page), str(page - 1)
 
 
@@ -172,7 +172,7 @@ class TwoStepScraper(Scraper):
             one_entity.df = one_entity.df.append(item_detail_load, ignore_index=True, sort=False)
         if item_info_load:
             one_entity.info = one_entity.info.append(item_info_load, ignore_index=True, sort=False)
-        one_entity.df = one_entity.format_df()
+        one_entity = one_entity.format_df()
         return one_entity, str(from_page), str(page)
     
     # Get item information

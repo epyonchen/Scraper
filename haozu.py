@@ -89,7 +89,7 @@ class Haozu(TwoStepScraper):
             item_detail['Property_ID'] = self.entity + '_' + item_id
             item_detail_list.append(item_detail)
         item_info = self.get_item_info(one_item_soup)
-        item_info['Property_ID'] = self.entity + '_' + item_id
+        item_info['Source_ID'] = self.entity + '_' + item_id
         item_info['Property'] = item_name
         return item_detail_list, [item_info]
 
@@ -125,6 +125,19 @@ class Haozu(TwoStepScraper):
 
         return info
 
+    def format_df(self):
+        def _limit_len(df):
+            col_dict = dict(
+                (col, df[col].apply(lambda x: len(str(x)) if x is not None else 0).max()) for col in df.columns.values
+            )
+            for k, v in col_dict.items():
+                if v > 255:
+                    df[k] = df[k].apply(lambda x: str(x)[:255])
+            return df
+
+        self.info = _limit_len(self.info)
+        return self
+
 
 if __name__ == '__main__':
 
@@ -134,15 +147,15 @@ if __name__ == '__main__':
                                           customized={
                                               'Timestamp': ">='{}'".format(TIME['TODAY']),
                                               'City': 'IN ({})'.format('\'' + '\', \''.join(list(cities)) + '\'')})
-        cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
+        cities = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
-    for city in cities_run:
+    for city in cities:
         one_city, start, end = Haozu.run(entity=city)  #
         logger.info('Start from page {}, stop at page {}.'.format(start, end))
 
         with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
             scrapydb.upload(df=one_city.df, table_name=PATH['DETAIL_TABLE'], schema='CHN_MKT', start=start, end=end,
-                            timestamp=TIME['TIMESTAMP'], source=SITE, entity=city)
+                            timestamp=TIME['TIMESTAMP'], source=SITE, city=city)
             scrapydb.upload(df=one_city.info, table_name=PATH['INFO_TABLE'], schema='CHN_MKT', dedup=True)
             #
             # one_city, start, end = Haozu.run(city=city)  #, from_page=1, to_page=1
