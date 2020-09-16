@@ -124,6 +124,7 @@ class TwoStepScraper(Scraper):
 
     # Query one entity
     @classmethod
+    @func_set_timeout(timeout=18000)
     def run(cls, from_page=1, to_page=None, entity=None, step=1):
         page = from_page
         one_entity = cls(entity)

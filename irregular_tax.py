@@ -13,6 +13,7 @@ import pandas as pd
 import pagemanipulate as pm
 import utility_email as em
 from func_timeout import func_set_timeout
+from func_timeout.exceptions import FunctionTimedOut
 from PIL import Image
 from baidu_api import Baidu_ocr
 from selenium.webdriver.common.by import By
@@ -175,7 +176,6 @@ class Tax:
         self.session.cookies.update(self.cookies)
 
     # Renew selenium and session
-    # TODO: refresh selenium and session when error
     def renew(self):
         logger.info('Renew browser and session.')
         self.web.renew(self.base)
@@ -190,7 +190,11 @@ class Tax:
 
         while True:
             # Exit with error when login takes too much time
-            t.login()
+            try:
+                t.login()
+            except FunctionTimedOut:
+                logger.exception('Timeout.')
+                exit(1)
 
             success = t.get()
             if success:

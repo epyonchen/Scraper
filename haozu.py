@@ -93,11 +93,12 @@ class Haozu(TwoStepScraper):
         item_info['Property'] = item_name
         return item_detail_list, [item_info]
 
-
     def get_item_info(self, item_detail_soup):
-        info = dict()
         ad_pattern = re.compile(r'\w+')
         fl_pattern = re.compile(r'\s+')
+
+        info = dict()
+        info['City'] = self.entity
         try:
             address = item_detail_soup.find('div', attrs={'class': 'house-address'}).span.text
             address = ad_pattern.findall(address)
