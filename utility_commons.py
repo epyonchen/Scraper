@@ -186,7 +186,6 @@ def excel_to_df(filename, sheet_name=None, path=None):
     try:
         df = pd.read_excel(folder_dir + r'\{}.xlsx'.format(filename), **para)
     except:
-        # TODO: reset logger
         logging.info('{}.xlsx does not exist, try {}.xls'.format(filename, filename))
         try:
             df = pd.read_excel(folder_dir + r'\{}.xls'.format(filename), **para)
