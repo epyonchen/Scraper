@@ -5,13 +5,13 @@ Created on Jan 24th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-
 import pymssql
 import pandas as pd
 import pyodbc
-from utility_commons import PATH, getLogger
+from utility_commons import PATH
+from utility_log import get_logger
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Mssql:
@@ -20,10 +20,11 @@ class Mssql:
         self.server = config['server']
         self.database = config['database']
         self.schema = config['schema']
+        self.df = None
         if pkg == 'pymssql':
-            if ('user' in config.keys()) and ('password' in config.keys()):
+            if ('username' in config.keys()) and ('password' in config.keys()):
                 self.conn = pymssql.connect(server=self.server, database=self.database,
-                                            user=config['user'], password=config['password'])
+                                            user=config['username'], password=config['password'])
             else:
                 self.conn = pymssql.connect(server=self.server, database=self.database)
             self.cur = self.conn.cursor()
@@ -32,10 +33,10 @@ class Mssql:
             if 'driver' in config.keys():
                 self.driver = config['driver']
             else:
-                self.driver = 'SQL Server Native Client 11.0'
-            if ('user' in config.keys()) and ('password' in config.keys()):
+                self.driver = 'SQL Server'
+            if ('username' in config.keys()) and ('password' in config.keys()):
                 self.conn = pyodbc.connect.connect(
-                    'DRIVER={};SERVER={};DATABASE={};UID={};PWD={}'.
+                    'DRIVER={};SERVER={};DATABASE={};UID={};PWD={};Trusted_Connection=yes;'.
                         format(self.driver, self.server, self.database, config['username'], config['password']))
             else:
                 self.conn = pyodbc.connect.connect('DRIVER={};SERVER={};DATABASE={};Trusted_Connection=yes;'.
@@ -49,7 +50,6 @@ class Mssql:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # TODO: exception fix
         if exc_type:
             logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         logger.info('Disconnect database: {}'.format(self.database))
