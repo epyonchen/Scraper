@@ -8,13 +8,14 @@ Created on July 1st 2019
 import random
 import time
 import re
-from utility_commons import PATH, getLogger
+from utility_commons import PATH
+from utility_log import get_logger
 from scrapers import TwoStepScraper
 
 SITE = 'Expo'
 TABLENAME = 'Scrapy_' + SITE
 LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
-logger = getLogger(SITE)
+logger = get_logger(SITE)
 
 
 class Expo(TwoStepScraper):

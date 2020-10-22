@@ -10,9 +10,9 @@ import pandas as pd
 import requests
 import hashlib
 from urllib import parse
-from utility_commons import getLogger
+from utility_log import get_logger
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class default_api:

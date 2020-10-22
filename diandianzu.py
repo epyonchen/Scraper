@@ -10,7 +10,8 @@ import time
 import re
 import db
 import utility_email as em
-from utility_commons import PATH, TIME, getLogger
+from utility_commons import PATH, TIME
+from utility_log import get_logger
 from scrapers import TwoStepScraper
 import keys
 
@@ -19,7 +20,7 @@ DETAIL_TABLE = 'Scrapy_Diandianzu'
 INFO_TABLE = 'Scrapy_Diandianzu_Info'
 LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Diandianzu(TwoStepScraper):
@@ -89,7 +90,6 @@ class Diandianzu(TwoStepScraper):
             item_detail_list.append(item_detail)
 
         return item_detail_list, [item_info]
-
 
     def get_item_info(self, item, item_detail):
         item_region = item.find('span', attrs={'class': 'region'}).find_all('a')

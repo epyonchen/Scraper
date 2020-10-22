@@ -12,10 +12,11 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
-from utility_commons import MAIL, getLogger
+from utility_commons import MAIL
+from utility_log import get_logger
 import keys
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Email:

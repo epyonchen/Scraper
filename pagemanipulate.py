@@ -13,7 +13,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from utility_commons import getLogger
+from utility_log import get_logger
 
 _DEFAULT_PREFERENCE = {
     'browser.download.folderList': 2,
@@ -24,7 +24,7 @@ _DEFAULT_PREFERENCE = {
     'browser.helperApps.neverAsk.saveToDisk': 'text/csv/xls/xlsx'
 }
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Page:

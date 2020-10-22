@@ -9,10 +9,11 @@ import json
 import requests
 import re
 from scrapers import Scraper
-from utility_commons import getLogger, df_to_excel
+from utility_commons import df_to_excel
+from utility_log import get_logger
 
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 class Fang(Scraper):
     def __init__(self, city):

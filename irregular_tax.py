@@ -19,7 +19,8 @@ from baidu_api import Baidu_ocr
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from utility_commons import PATH, TIME, getLogger
+from utility_commons import PATH, TIME
+from utility_log import get_logger
 import keys
 
 SCREENSHOT_PATH = PATH['PIC_DIR'] + r'\screen_shot.png'
@@ -34,7 +35,7 @@ TAX_TABLE = 'Scrapy_' + SITE + '_Summary'
 ACCESS_TABLE_NAME = 'Scrapy_Irregular_Tax_Access'
 LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
-logger = getLogger(SITE)
+logger = get_logger(SITE)
 count = 0
 
 

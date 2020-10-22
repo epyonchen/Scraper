@@ -9,10 +9,10 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import pagemanipulate as pm
-from utility_commons import getLogger
+from utility_log import get_logger
 from func_timeout import func_set_timeout
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Scraper:

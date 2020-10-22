@@ -12,13 +12,14 @@ import db
 import keys
 import utility_email as em
 from scrapers import TwoStepScraper
-from utility_commons import PATH, TIME, getLogger
+from utility_commons import PATH, TIME
+from utility_log import get_logger
 
 SITE = 'Haozu'
 PATH['DETAIL_TABLE'] = 'Scrapy_' + SITE
 PATH['INFO_TABLE'] = 'Scrapy_' + SITE + '_Info'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
-logger = getLogger(SITE)
+logger = get_logger(SITE)
 
 
 class Haozu(TwoStepScraper):
