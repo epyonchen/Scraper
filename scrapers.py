@@ -4,26 +4,26 @@ Created on April 18th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import pagemanipulate as pm
 from utility_log import get_logger
+from utility_commons import get_job_name, TIME
 from func_timeout import func_set_timeout
 
 logger = get_logger(__name__)
 
 
 class Scraper:
-    def __init__(self, entity=None):
+    def __init__(self):
         self.search_base = None
-        self.search_url = None
-        self.entity = entity
+        # self.search_url = None
+        # self.entity = entity
         self.df = pd.DataFrame()
         self.info = pd.DataFrame()
         self.session = requests.session()
-        self.cookies = requests.cookies.RequestsCookieJar()
+        self.cookies = requests.session.cookies.RequestsCookieJar()
         self.switch = True
         self.success = True
 
@@ -74,27 +74,23 @@ class Scraper:
 
     # Format dataframe into db structure
     def format_df(self):
+        job_name = get_job_name()
+        if (self.df is not None) or (not self.df.empty):
+            self.df['Timestamp'] = TIME['TODAY']
+        if (self.info is not None) or (not self.info.empty):
+            self.info['Timestamp'] = TIME['TODAY']
 
         return self
 
-    @classmethod
     @func_set_timeout(timeout=18000)
-    def run(cls, from_page=1, to_page=None, entity=None, step=1):
+    def run(self, from_page=1, to_page=None, step=1):
         page = from_page
-        one_entity = cls(entity)
         item_info_load = []
 
-        if not entity:
-            logger.error('Entity is missing.')
-            return None, str(from_page), str(page)
-
-        logger.info('Start querying {}.'.format(entity))
-
         while (not to_page) or (page <= to_page):
-            logger.info('Query entity: {}    Page: {}.'.format(entity, page))
 
             # Get items in one page
-            item_list = one_entity.get_item_list(page)
+            item_list = self.get_item_list(page)
             page += step
             if item_list:
 
@@ -106,42 +102,24 @@ class Scraper:
         logger.info('Total {} records, {} pages.'.format(str(len(item_info_load)), str(page - from_page)))
 
         if item_info_load:
-            one_entity.df = one_entity.df.append(item_info_load, ignore_index=True, sort=False)
-        one_entity = one_entity.format_df()
-        return one_entity, str(from_page), str(page - 1)
+            self.df = self.df.append(item_info_load, ignore_index=True, sort=False)
+        self.format_df()
+        # return one_entity, str(from_page), str(page - 1)
 
 
 class TwoStepScraper(Scraper):
-    def __init__(self, entity):
-        self.search_base = None
-        self.search_url = None
-        self.entity = entity
-        self.df = pd.DataFrame()
-        self.info = pd.DataFrame()
-        self.session = requests.session()
-        self.cookies = requests.cookies.RequestsCookieJar()
-        self.switch = True
 
     # Query one entity
-    @classmethod
     @func_set_timeout(timeout=18000)
-    def run(cls, from_page=1, to_page=None, entity=None, step=1):
+    def run(self, from_page=1, to_page=None, step=1):
         page = from_page
-        one_entity = cls(entity)
         item_info_load = []
         item_detail_load = []
 
-        if not entity:
-            logger.error('Entity is missing.')
-            return None, str(from_page), str(page)
-
-        logger.info('Start querying {}.'.format(one_entity.entity))
-
         while (not to_page) or (page <= to_page):
-            logger.info('Query entity: {}    Page: {}.'.format(one_entity.entity, page))
 
             # Get items in one page
-            item_list = one_entity.get_item_list(page)
+            item_list = self.get_item_list(page)
 
             # If item_list is empty, stop query
             if not item_list:
@@ -153,7 +131,7 @@ class TwoStepScraper(Scraper):
                 # Go through items in one page
                 for item in item_list:
                     # Get detail list of one item
-                    result_tuple = one_entity.get_item_detail(item)
+                    result_tuple = self.get_item_detail(item)
                     if isinstance(result_tuple, tuple) and (len(result_tuple) > 1):
                         item_detail_list = result_tuple[0]
                         item_info_list = result_tuple[1]
@@ -170,18 +148,14 @@ class TwoStepScraper(Scraper):
         logger.info('Total {} records, {} pages.'.format(str(len(item_detail_load)), str(page - from_page)))
 
         if item_detail_load:
-            one_entity.df = one_entity.df.append(item_detail_load, ignore_index=True, sort=False)
+            self.df = self.df.append(item_detail_load, ignore_index=True, sort=False)
         if item_info_load:
-            one_entity.info = one_entity.info.append(item_info_load, ignore_index=True, sort=False)
-        one_entity = one_entity.format_df()
-        return one_entity, str(from_page), str(page)
-    
-    # Get item information
-    def get_item_info(self):
-        item_info = None
-        return item_info
-        
+            self.info = self.info.append(item_info_load, ignore_index=True, sort=False)
+        self.format_df()
+        # return one_entity, str(from_page), str(page)
+
     # Get detail of one item
     def get_item_detail(self, item):
         item_detail = item
         return item_detail
+
