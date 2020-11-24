@@ -1,5 +1,5 @@
 import logging
-from utility_commons import PATH
+from utility_commons import PATH, get_job_name
 
 # global log variable
 __default_logger = 'scrapy'
@@ -34,7 +34,7 @@ LOG_CONFIG = {
 def get_logger(logger_name=__default_logger, isjob=True):
     if isjob:
         global __default_logger, __log_map
-        __default_logger = _get_job_name()
+        __default_logger = get_job_name()
 
         # Set job root logger
         if __default_logger not in __log_map.keys():
@@ -85,11 +85,4 @@ def _update_log_config(logger_name, default_logger):
     LOG_CONFIG['loggers'].update(logger_config)
 
 
-# Get current job name
-def _get_job_name():
-    import re
-    import sys
-    module = sys.modules['__main__']
-    name_pattern = re.compile(r'\w+\.py')
-    name = re.search(name_pattern, str(module.__file__)).group(0)
-    return name.replace(r'.py', '')
+
