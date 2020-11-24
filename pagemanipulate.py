@@ -105,7 +105,7 @@ class Page:
     def get_requests_cookies(self):
         import requests
         webdriver_cookies = self.driver.get_cookies()
-        cookies = requests.cookies.RequestsCookieJar()
+        cookies = requests.session.cookies.RequestsCookieJar()
 
         for c in webdriver_cookies:
             cookies.set(c["name"], c['value'])
