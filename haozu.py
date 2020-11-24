@@ -4,36 +4,37 @@ Created on Dec 21st 2018
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-
 import random
 import time
 import re
-import db
 import keys
 import utility_email as em
+from db import Mssql, get_sql_list
 from scrapers import TwoStepScraper
-from utility_commons import PATH, TIME, getLogger
+from utility_commons import PATH, TIME, DB
+from utility_log import get_logger
 
 SITE = 'Haozu'
 PATH['DETAIL_TABLE'] = 'Scrapy_' + SITE
 PATH['INFO_TABLE'] = 'Scrapy_' + SITE + '_Info'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
-logger = getLogger(SITE)
+logger = get_logger(SITE)
 
 
 class Haozu(TwoStepScraper):
     def __init__(self, entity):
-        TwoStepScraper.__init__(self, entity)
+        super().__init__()
+        self.entity = entity
         self.search_base = 'https://www.haozu.com'
         self.search_suffix = '/{}/zuxiezilou/a1/'.format(entity) + 'o{}/'
-        # search_url = search_base + '/{}/zuxiezilou/a1/o{}/'.format(city, str(page))
 
     # Get items in one page
     def get_item_list(self, pagenum):
+        logger.info('Query entity: {}    Page: {}.'.format(self.entity, pagenum))
         list_link = self.search_suffix.format(pagenum)
         list_soup = self.search(url=self.search_base + list_link)
         try:
-            item_list = list_soup.find('ul',  attrs={'class': 'listCon propertyList'}).\
+            item_list = list_soup.find('ul', attrs={'class': 'listCon propertyList'}). \
                 find_all('h1', attrs={'class': 'h1-title'})
         except Exception:
             logger.exception('Fail to get item list')
@@ -56,7 +57,7 @@ class Haozu(TwoStepScraper):
         one_item_soup = self.search(self.search_base + item_link)
 
         try:
-            detail_list = one_item_soup.find('table', attrs={'id': 'normalHouseList'}).\
+            detail_list = one_item_soup.find('table', attrs={'id': 'normalHouseList'}). \
                 find_all('tr', attrs={'data-role': 'item'})
             logger.info('Building Name: {}     Office Count: {}'.format(item_name, len(detail_list)))
         except Exception:
@@ -67,7 +68,7 @@ class Haozu(TwoStepScraper):
         for row in detail_list:
             item_detail = dict()
             if 'data-content' in row.attrs.keys():
-                item_detail['Source_ID'] = self.entity + '_' + re.compile(r'house\d+').\
+                item_detail['Source_ID'] = self.entity + '_' + re.compile(r'house\d+'). \
                     search(row.attrs['onclick']).group(0)
             else:
                 continue
@@ -80,7 +81,7 @@ class Haozu(TwoStepScraper):
                     if re.compile(r'.+万元/月').search(col.text) is not None:
                         try:
                             item_detail[col['title']] = str(float(col.i.text) * 10000)
-                        except:
+                        except Exception:
                             item_detail[col['title']] = 0
                     else:
                         item_detail[col['title']] = col.i.text
@@ -112,7 +113,7 @@ class Haozu(TwoStepScraper):
             overview = item_detail_soup.find('ul', attrs={'class': 'overview'}).find_all('li')
             for desc in overview:
                 if len(desc.contents) > 3:
-                    info[desc.contents[1].text.strip()] = re.subn(fl_pattern,  ',', desc.contents[3].text.strip())[0]
+                    info[desc.contents[1].text.strip()] = re.subn(fl_pattern, ',', desc.contents[3].text.strip())[0]
         except Exception:
             logger.exception('No overview info.')
 
@@ -127,6 +128,8 @@ class Haozu(TwoStepScraper):
         return info
 
     def format_df(self):
+        super().format_df()
+
         def _limit_len(df):
             col_dict = dict(
                 (col, df[col].apply(lambda x: len(str(x)) if x is not None else 0).max()) for col in df.columns.values
@@ -143,25 +146,23 @@ class Haozu(TwoStepScraper):
 if __name__ == '__main__':
 
     cities = ['gz', 'sz', 'sh', 'bj', 'cd']
-    with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
-        existing_cities = scrapydb.select(table_name=PATH['LOG_TABLE_NAME'], source=SITE,
-                                          customized={
-                                              'Timestamp': ">='{}'".format(TIME['TODAY']),
-                                              'City': 'IN ({})'.format('\'' + '\', \''.join(list(cities)) + '\'')})
-        cities = list(set(cities) - set(existing_cities['City'].values.tolist()))
 
-    for city in cities:
-        one_city, start, end = Haozu.run(entity=city)  #
-        logger.info('Start from page {}, stop at page {}.'.format(start, end))
+    with Mssql(config=keys.dbconfig_mkt) as exist_db:
+        con_city = get_sql_list(cities)
+        condition = '[Timestamp] >= {0} AND [Entity] IN {1} AND [Source] = {2}'.\
+            format(get_sql_list(TIME['TODAY']), get_sql_list(cities), get_sql_list(SITE))
+        existing_cities = exist_db.select(table_name=DB['LOG_TABLE_NAME'], condition=condition)
+        cities_run = list(set(cities) - set(existing_cities['Entity'].values.tolist()))
 
-        with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
-            scrapydb.upload(df=one_city.df, table_name=PATH['DETAIL_TABLE'], schema='CHN_MKT', start=start, end=end,
-                            timestamp=TIME['TIMESTAMP'], source=SITE, city=city)
-            scrapydb.upload(df=one_city.info, table_name=PATH['INFO_TABLE'], schema='CHN_MKT', dedup=True)
-            #
-            # one_city, start, end = Haozu.run(city=city)  #, from_page=1, to_page=1
-            # logger.info('Start from page {}, stop at page {}.'.format(start, end))
-            # scrapydb.upload(one_city.df, TABLENAME, start=start, end=end, timestamp=TIMESTAMP, source=SITE, city=city)
+    for city in cities_run:
+        city_object = Haozu(city)
+        city_object.run()
+
+        with Mssql(config=keys.dbconfig_mkt) as entity_db:
+            entity_db.upload(df=city_object.df, table_name=PATH['DETAIL_TABLE'], schema='CHN_MKT', new_id=SITE)
+            entity_db.upload(df=city_object.info, table_name=PATH['INFO_TABLE'], schema='CHN_MKT', new_id=SITE,
+                             dedupe_col='Source_ID')
+            entity_db.log(Entity=city, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(city_object.info))
 
     scrapyemail = em.Email()
     scrapyemail.send(subject='[Scrapy] ' + PATH['DETAIL_TABLE'], content='Done', attachment=PATH['LOG_PATH'])

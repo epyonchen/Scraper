@@ -12,10 +12,11 @@ import urllib
 import geocodeconvert as gc
 from aip import AipOcr
 from default_api import default_api
-from utility_commons import getLogger, get_nested_value
+from utility_commons import get_nested_value
+from utility_log import get_logger
 import keys
 
-logger = getLogger('scrapy')
+logger = get_logger('scrapy')
 
 
 class Baidu_map(default_api):

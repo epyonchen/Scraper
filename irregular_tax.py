@@ -4,37 +4,39 @@ Created on May 11th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-
 import re
 import requests
 import os
-import db
 import pandas as pd
 import pagemanipulate as pm
 import utility_email as em
-from func_timeout import func_set_timeout
+from db import Mssql, get_sql_list
+from func_timeout import func_set_timeout, func_timeout
 from func_timeout.exceptions import FunctionTimedOut
 from PIL import Image
 from baidu_api import Baidu_ocr
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from utility_commons import PATH, TIME, getLogger
+from utility_commons import PATH, TIME, DB, excel_to_df, get_job_name
+from utility_log import get_logger
 import keys
 
-SCREENSHOT_PATH = PATH['PIC_DIR'] + r'\screen_shot.png'
-VCODE_PATH = PATH['PIC_DIR'] + r'\vcode.png'
-TAX_DETAIL_PATH = PATH['FILE_DIR'] + r'\Irregular_Tax.xls'
-TAX_PATH = PATH['FILE_DIR'] + r'\Irregular_Tax_Summary.xls'
-ATTACHMENT_PATH = PATH['FILE_DIR'] + r'\{}_异常发票清单_{}.xlsx'
+SITE = get_job_name()
+PATH['SCREENSHOT_PATH'] = PATH['PIC_DIR'] + r'\screen_shot.png'
+PATH['VCODE_PATH'] = PATH['PIC_DIR'] + r'\vcode.png'
+PATH['TAX_DETAIL_FILE'] = r'\Irregular_Tax.xls'
+PATH['TAX_FILE'] = r'\Irregular_Tax_Summary.xls'
+PATH['ATTACHMENT_FILE'] = r'\{}_异常发票清单_{}.xlsx'
+PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
-SITE = 'Irregular_Tax'
+
 TAX_DETAIL_TABLE = 'Scrapy_' + SITE
 TAX_TABLE = 'Scrapy_' + SITE + '_Summary'
 ACCESS_TABLE_NAME = 'Scrapy_Irregular_Tax_Access'
-LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
-logger = getLogger(SITE)
+
+logger = get_logger(SITE)
 count = 0
 
 
@@ -53,13 +55,14 @@ class Tax:
     # Crop validation code pic from screen shot
     def get_vcode_pic(self):
         try:
-            self.web.driver.save_screenshot(SCREENSHOT_PATH)
+            self.web.driver.save_screenshot(PATH['SCREENSHOT_PATH'])
             pic = self.web.driver.find_element_by_xpath('//*[@id="crcpic"]')
         except Exception:
             logger.exception('Unable to get validation code pic.')
             return False
-        vcode_pic = Image.open(SCREENSHOT_PATH)
-        vcode_pic = vcode_pic.crop((pic.location['x'], pic.location['y'], pic.location['x'] + pic.size['width'], pic.location['y'] + pic.size['height']))
+        vcode_pic = Image.open(PATH['SCREENSHOT_PATH'])
+        vcode_pic = vcode_pic.crop((pic.location['x'], pic.location['y'], pic.location['x'] + pic.size['width'],
+                                    pic.location['y'] + pic.size['height']))
         return vcode_pic
 
     # Validation code is valid with 4 letters and probability > 0.7
@@ -87,7 +90,8 @@ class Tax:
             vpic = self.get_vcode_pic()
             if vpic:
                 ocr = Baidu_ocr()
-                ocr_result = ocr.ocr_api_call(vpic, VCODE_PATH, bin_threshold=100, detect_direction='false', language_type='ENG', probability='true')
+                ocr_result = ocr.ocr_api_call(vpic, PATH['VCODE_PATH'], bin_threshold=100, detect_direction='false',
+                                              language_type='ENG', probability='true')
                 if (not ocr_result) and (ocr.switch < 4):
                     continue
                 elif (not ocr_result) and (ocr.switch >= 4):
@@ -107,14 +111,15 @@ class Tax:
                 return False
 
     # Login
-    @func_set_timeout(timeout=3600)
+    @func_set_timeout(timeout=3600, allowOverride=True)
     def login(self):
         while True:
 
             vcode = self.get_vcode()
             if vcode:
                 try:
-                    self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[3]/td[1]/input', value=self.username)
+                    self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[3]/td[1]/input',
+                                  value=self.username)
                     self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[4]/td/input', value=self.password)
                     self.web.send(path='//*[@id="login"]/tbody/tr/td/table/tbody/tr[5]/td[1]/input', value=vcode)
                     self.web.click(path='//*[@id="loginbt"]')
@@ -147,12 +152,13 @@ class Tax:
                                        'zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;' \
                                        '0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&' \
                                        'xsdjh='.format(str(startdate), str(enddate), str(valid))
-        tax_flag = self.download_file(tax_query, TAX_PATH)
-        tax_detail_flag = self.download_file(tax_detail_query, TAX_DETAIL_PATH)
+        tax_flag = self.download_file(tax_query, PATH['TAX_PATH'])
+        tax_detail_flag = self.download_file(tax_detail_query, PATH['TAX_DETAIL_PATH'])
         return tax_flag and tax_detail_flag
 
     # Delete previous query file and download a new one
-    def download_file(self, query, file_path):
+    def download_file(self, query, file_name, file_dir=PATH['FILE_DIR']):
+        file_path = file_dir + file_name
         self.check_last_query(file_path)
         try:
             self.update_cookies()
@@ -183,37 +189,41 @@ class Tax:
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
 
-    @classmethod
-    @func_set_timeout(timeout=3600)
-    def run(cls, entity, server, link, username, password):
-        t = cls(link, username, password)
+    # @classmethod
+    @func_set_timeout(timeout=3600, allowOverride=True)
+    def run(self, entity, server):
+        # t = cls(link, username, password)
 
         while True:
             # Exit with error when login takes too much time
             try:
-                t.login()
+                func_timeout(timeout=3600, func=self.login())
+
             except FunctionTimedOut:
                 logger.exception('Timeout.')
                 exit(1)
+            except Exception as e:
+                logger.exception(e)
 
-            success = t.get()
+            success = self.get()
             if success:
-                t.web.close()
+                self.web.close()
                 break
             else:
                 logger.info('Restart job, Entity {} Server {}'.format(entity, server))
-                t.renew()
+                self.renew()
                 continue
 
-        df = pd.read_excel(TAX_PATH, sheet_name='发票信息', dtype=str)
+        df = excel_to_df(path=PATH['FILE_DIR'], file_name=PATH['TAX_FILE'], sheet_name='发票信息')
         df = df[df['序号'] != 'nan']
         df['企业税号'] = entity
         df['服务器号'] = server
 
-        detail_df = pd.read_excel(TAX_DETAIL_PATH, sheet_name='商品信息', dtype=str)
+        detail_df = excel_to_df(path=PATH['FILE_DIR'], file_name=PATH['TAX_DETAIL_FILE'], sheet_name='商品信息')
         detail_df = detail_df[detail_df['序号'] != 'nan']
         detail_df['企业税号'] = entity
         detail_df['服务器号'] = server
+        detail_df['timestamp'] = TIME['TIMESTAMP']
 
         return df, detail_df
 
@@ -227,7 +237,7 @@ def _send_email(entity, receiver, attachment):
         content = 'Hi All,\r\n\r\n{}的发票无异常记录。\r\n\r\nThanks.'.format(entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
     else:
-        entity_path = ATTACHMENT_PATH.format(TIME['TODAY'], entity)
+        entity_path = PATH['FILE_DIR'] + PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity)
         subject = '[PAM Tax Checking] - {} 发票异常清单 {}'.format(TIME['TODAY'], entity)
         content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
         attachment.to_excel(entity_path, index=False, header=True, sheet_name=entity)
@@ -242,56 +252,55 @@ if __name__ == '__main__':
 
     logger.info('---------------   Irregular tax ratio query.   ---------------')
 
-    with db.Mssql(keys.dbconfig) as scrapydb:
-        access = scrapydb.select(ACCESS_TABLE_NAME)
+    with Mssql(keys.dbconfig) as exist_db:
+        access = exist_db.select(ACCESS_TABLE_NAME)
+        condition = '[Timestamp] >= {0} AND [Entity] IN {1} AND [Source] = {2}'. \
+            format(get_sql_list(TIME['TODAY']), get_sql_list(access['Entity_Name'].to_list()), get_sql_list(SITE))
         entities = '\'' + '\', \''.join(list(access['Entity_Name'])) + '\''
-        logs = scrapydb.select(PATH['LOG_TABLE_NAME'], source=SITE, customized={'Timestamp': ">='{}'".
-                               format(TIME['TODAY']), 'City': 'IN ({})'.format(entities)})
+        logs = exist_db.select(table_name=DB['LOG_TABLE_NAME'], condition=condition)
         # Exclude entities with logs in same day. If no logs, refresh table
         if not logs.empty:
             logger.info('Exclude existing entities and continue.')
-            access_run = access[-access['Entity_Name'].isin(logs['City'])]
+            access_run = access[-access['Entity_Name'].isin(logs['Entity'])]
         else:
             logger.info('Delete existing records and start a new query.')
-            scrapydb.delete(table_name=TAX_TABLE)
-            scrapydb.delete(table_name=TAX_DETAIL_TABLE)
+            exist_db.delete(table_name=TAX_TABLE)
+            exist_db.delete(table_name=TAX_DETAIL_TABLE)
             access_run = access
 
     # Core scraping process
     for index, row in access_run.iterrows():
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.
                     format(row['Entity_Name'], row['Server']))
-        tax_df, tax_detail_df = Tax.run(entity=row['Entity_Name'], server=row['Server'], link=row['Link'],
-                                        username=row['User_Name'], password=row['Password'])
+        one_entity = Tax(link=row['Link'], username=row['User_Name'], password=row['Password'])
+        tax_df, tax_detail_df = one_entity.run(entity=row['Entity_Name'], server=row['Server'])
 
         # Upload to database
-        scrapydb = db.Mssql(keys.dbconfig)
-        scrapydb.upload(df=tax_df, table_name=TAX_TABLE, new_id=False, dedup=False)
-        scrapydb.upload(df=tax_detail_df, table_name=TAX_DETAIL_TABLE, new_id=False, dedup=False,
-                        start=TIME['PRE3MONTH'], end=TIME['TODAY'], timestamp=TIME['TIMESTAMP'],
-                        source=SITE, city=row['Entity_Name'])
-        scrapydb.close()
+        entity_db = Mssql(keys.dbconfig)
+        entity_db.upload(df=tax_df, table_name=TAX_TABLE)
+        entity_db.upload(df=tax_detail_df, table_name=TAX_DETAIL_TABLE)
+        entity_db.log(start=TIME['PRE3MONTH'], end=TIME['TODAY'], Timestamp=TIME['TIMESTAMP'], Source=SITE,
+                      Entity=row['Entity_Name'])
+        entity_db.close()
 
     # Ensure failure of scraping process do not interrupt email and sp execution
-    with db.Mssql(keys.dbconfig) as scrapydb:
+    with Mssql(keys.dbconfig) as execute_db:
         # Update Irregular_Ind by executing stored procedure
-        scrapydb.call_sp('CHN.Irregular_Tax_Refresh', table_name=TAX_DETAIL_TABLE, table_name2=TAX_TABLE)
+        execute_db.call_sp(sp='CHN.Irregular_Tax_Refresh', table_name=TAX_DETAIL_TABLE, table_name2=TAX_TABLE)
         for index, row in access.iterrows():
             # Get irregular record
-            att = scrapydb.call_sp(sp='CHN.Irregular_Tax_ETL', output=True, table_name=TAX_DETAIL_TABLE,
-                                   entity_name=row['Entity_Name'])
+            att = execute_db.call_sp(sp='CHN.Irregular_Tax_ETL', output=True, table_name=TAX_DETAIL_TABLE,
+                                     entity_name=row['Entity_Name'])
             numeric_col = ['金额', '单价', '税率', '税额']
 
             if att is not False:
                 att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
 
-            _send_email(entity=row['Entity_Name'], receiver=row['Email_List'], attachment=att)
+            # _send_email(entity=row['Entity_Name'], receiver=row['Email_List'], attachment=att)
 
     # Send email summary
     scrapyemail_summary = em.Email()
-    scrapyemail_summary.send('[Scrapy]' + SITE, 'Done', LOG_PATH,
+    scrapyemail_summary.send('[Scrapy]' + SITE, 'Done', PATH['LOG_PATH'],
                              receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
     scrapyemail_summary.close()
     exit(0)
-
-

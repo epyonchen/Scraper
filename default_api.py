@@ -10,9 +10,9 @@ import pandas as pd
 import requests
 import hashlib
 from urllib import parse
-from utility_commons import getLogger
+from utility_log import get_logger
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class default_api:
@@ -91,8 +91,11 @@ class default_api:
 
                 # Update source into response
                 if one_call:
+                    ref_row = dict()
+                    for k, v in row.to_dict().items():
+                        ref_row['ref_' + k] = v
                     for call in one_call:
-                        call.update(row.to_dict())
+                        call.update(ref_row)
                     results = results.append(one_call, ignore_index=True, sort=False)
                 else:
                     break

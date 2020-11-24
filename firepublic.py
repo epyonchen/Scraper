@@ -13,13 +13,14 @@ import pandas as pd
 import pagemanipulate as pm
 import utility_email as em
 from bs4 import BeautifulSoup
-from utility_commons import PATH, TIME, getLogger
+from utility_commons import PATH, TIME
+from utility_log import get_logger
 import keys
 
 SITE = 'FirePublic'
 TABLENAME = 'Scrapy_FirePublic'
 LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
-logger = getLogger(SITE)
+logger = get_logger(SITE)
 total_page = 0
 
 

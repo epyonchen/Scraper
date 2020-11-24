@@ -8,10 +8,11 @@ Created on June 24th 2018
 
 import geocodeconvert as gc
 from default_api import default_api
-from utility_commons import getLogger, get_nested_value
+from utility_commons import get_nested_value
+from utility_log import get_logger
 import keys
 
-logger = getLogger('Amap')
+logger = get_logger('Amap')
 
 
 class Amap(default_api):
@@ -73,7 +74,7 @@ class Amap(default_api):
             logger.error('No response from api.')
             return None
         elif api_response['status'] != '1':
-            logger.error('Response error, status: {}'.format(api_response['status']))
+            logger.error('Response error, {}'.format(api_response))
         else:
             one_call = list()
             for result in api_response['pois']:
@@ -91,6 +92,3 @@ if __name__ == '__main__':
     # df = pd.DataFrame()
     # df = df.append([{'keywords': '东风东路5号', 'city': 'guangzhou', 'types': '120000'}], ignore_index=True)
 
-    input = excel_to_df('amap_api', sheet_name='Sheet2')
-    df = amap.query(input)
-    df_to_excel(df, 'amap_result')

@@ -3,33 +3,35 @@ Created on Jan 9th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
-
+# -*- coding: utf-8 -*-
 
 import random
 import time
 import re
-import db
 import utility_email as em
-from utility_commons import PATH, TIME, getLogger
+from utility_commons import PATH, TIME, DB
+from utility_log import get_logger
 from scrapers import TwoStepScraper
+from db import Mssql, get_sql_list
 import keys
 
 SITE = 'Diandianzu'
-DETAIL_TABLE = 'Scrapy_Diandianzu'
-INFO_TABLE = 'Scrapy_Diandianzu_Info'
-LOG_PATH = PATH['LOG_DIR'] + '\\' + SITE + '.log'
-
-logger = getLogger(__name__)
+PATH['DETAIL_TABLE'] = 'Scrapy_' + SITE
+PATH['INFO_TABLE'] = 'Scrapy_' + SITE + '_Info'
+PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
+logger = get_logger(SITE)
 
 
 class Diandianzu(TwoStepScraper):
     def __init__(self, entity):
-        TwoStepScraper.__init__(self, entity)
+        super().__init__()
         self.search_base = 'https://{}.diandianzu.com'.format(entity)
         self.search_suffix = '/listing/p{}/'
+        self.entity = entity
 
     # Get items in one page
     def get_item_list(self, pagenum):
+        logger.info('Query entity: {}    Page: {}.'.format(self.entity, pagenum))
         list_link = self.search_suffix.format(pagenum)
         list_soup = self.search(url=self.search_base + list_link)
         try:
@@ -55,15 +57,15 @@ class Diandianzu(TwoStepScraper):
             item_detail_title = one_item_soup.find('div', attrs={'class': 'ftitle clearfix'}).find_all('div')
         except Exception:
             logger.exception('Fail to get title.')
-            return False
+            return None
         if not item_detail_title:
-            return False
+            return None
         try:
             detail_list = one_item_soup.find('div', attrs={'class': 'fbody'}).find_all('div', attrs={'class': re.compile('fitem .*')})
             logger.info('Building Name: {}     Office Count: {}'.format(item_info['Name'], len(detail_list)))
         except Exception:
             logger.exception('Fail to get detail list.')
-            return False
+            return None
 
         # Go through detail list of one item
         for row in detail_list:
@@ -86,10 +88,10 @@ class Diandianzu(TwoStepScraper):
             item_detail['Source_ID'] = self.entity + '_' + row['data-id']
             item_detail['Property'] = item_info['Name']
             item_detail['Property_ID'] = item_info['Source_ID']
+            item_detail['City'] = self.entity
             item_detail_list.append(item_detail)
 
         return item_detail_list, [item_info]
-
 
     def get_item_info(self, item, item_detail):
         item_region = item.find('span', attrs={'class': 'region'}).find_all('a')
@@ -119,36 +121,35 @@ class Diandianzu(TwoStepScraper):
 
         return item_info
 
+    def format_df(self):
+        super().format_df()
+        pattern = re.compile(r'\(VR看房\)')
+        self.df['Property'] = self.df['Property'].apply(lambda x: re.sub(pattern, '', x))
+        self.info['Name'] = self.info['Name'].apply(lambda x: re.sub(pattern, '', x))
+
 
 if __name__ == '__main__':
 
     cities = ['gz', 'sz', 'sh', 'bj', 'cd']
 
-    with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
-
-        existing_cities = scrapydb.select(table_name=PATH['LOG_TABLE_NAME'], source=SITE,
-                                          customized={
-                                              'Timestamp': ">='{}'".format(TIME['TODAY']),
-                                              'City': 'IN ({})'.format('\'' + '\', \''.join(list(cities)) + '\'')})
-        cities_run = list(set(cities) - set(existing_cities['City'].values.tolist()))
+    with Mssql(config=keys.dbconfig_mkt) as exist_db:
+        con_city = get_sql_list(cities)
+        condition = '[Timestamp] >= {0} AND [Entity] IN {1} AND [Source] = {2}'.\
+            format(get_sql_list(TIME['TODAY']), get_sql_list(cities), get_sql_list(SITE))
+        existing_cities = exist_db.select(table_name=DB['LOG_TABLE_NAME'], condition=condition)
+        cities_run = list(set(cities) - set(existing_cities['Entity'].values.tolist()))
 
     for city in cities_run:
-        one_city, start, end = Diandianzu.run(entity=city)
-        logger.info('Start from page {}, stop at page {}.'.format(start, end))
+        city_object = Diandianzu(city)
+        city_object.run()
 
-        with db.Mssql(config=keys.dbconfig_mkt) as scrapydb:
-            scrapydb.upload(df=one_city.df, table_name=DETAIL_TABLE, schema='CHN_MKT', start=start, end=end,
-                            timestamp=TIME['TIMESTAMP'], source=SITE, city=city)
-            scrapydb.upload(df=one_city.info, table_name=INFO_TABLE, schema='CHN_MKT', dedup=True)
-
-    # for city in cities:
-    #     one_city, start, end = Diandianzu.run(entity=city)  #
-    #     logger.info('Start from page {}, stop at page {}.'.format(start, end))
-    #     # one_city.df.to_excel(FILE_DIR + '\\' + city + DETAIL_TABLE + '.xlsx', index=False, header=True, sheet_name=city)
-    #     one_city.info.to_excel(FILE_DIR + '\\' + city + INFO_TABLE + '.xlsx', index=False, header=True, sheet_name=city)
-    #     break
+        with Mssql(config=keys.dbconfig_mkt) as entity_db:
+            entity_db.upload(df=city_object.df, table_name=PATH['DETAIL_TABLE'], schema='CHN_MKT', new_id=SITE)
+            entity_db.upload(df=city_object.info, table_name=PATH['INFO_TABLE'], schema='CHN_MKT', new_id=SITE,
+                             dedupe_col='Source_ID')
+            entity_db.log(Entity=city, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(city_object.info))
 
     scrapyemail = em.Email()
-    scrapyemail.send(subject='[Scrapy] ' + DETAIL_TABLE, content='Done', attachment=LOG_PATH)
+    scrapyemail.send(subject='[Scrapy] ' + PATH['DETAIL_TABLE'], content='Done', attachment=PATH['LOG_PATH'])
     scrapyemail.close()
     exit(0)
