@@ -31,12 +31,12 @@ PATH['ATTACHMENT_FILE'] = r'\{}_异常发票清单_{}.xlsx'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
 
-TAX_DETAIL_TABLE = 'Scrapy_' + SITE
-TAX_TABLE = 'Scrapy_' + SITE + '_Summary'
-ACCESS_TABLE_NAME = 'Scrapy_Irregular_Tax_Access'
+DB['TAX_DETAIL_TABLE'] = 'Scrapy_' + SITE
+DB['TAX_TABLE'] = 'Scrapy_' + SITE + '_Summary'
+DB['ACCESS_TABLE'] = 'Scrapy_Irregular_Tax_Access'
 
 
-logger = get_logger(SITE)
+logger = get_logger(__name__)
 count = 0
 
 
@@ -152,8 +152,8 @@ class Tax:
                                        'zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;' \
                                        '0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&' \
                                        'xsdjh='.format(str(startdate), str(enddate), str(valid))
-        tax_flag = self.download_file(tax_query, PATH['TAX_PATH'])
-        tax_detail_flag = self.download_file(tax_detail_query, PATH['TAX_DETAIL_PATH'])
+        tax_flag = self.download_file(tax_query, PATH['TAX_FILE'])
+        tax_detail_flag = self.download_file(tax_detail_query, PATH['TAX_DETAIL_FILE'])
         return tax_flag and tax_detail_flag
 
     # Delete previous query file and download a new one
@@ -253,9 +253,9 @@ if __name__ == '__main__':
     logger.info('---------------   Irregular tax ratio query.   ---------------')
 
     with Mssql(keys.dbconfig) as exist_db:
-        access = exist_db.select(ACCESS_TABLE_NAME)
+        access = exist_db.select(DB['ACCESS_TABLE'])
         condition = '[Timestamp] >= {0} AND [Entity] IN {1} AND [Source] = {2}'. \
-            format(get_sql_list(TIME['TODAY']), get_sql_list(access['Entity_Name'].to_list()), get_sql_list(SITE))
+            format(get_sql_list(TIME['TODAY']), get_sql_list(access['Entity_Name'].tolist()), get_sql_list(SITE))
         entities = '\'' + '\', \''.join(list(access['Entity_Name'])) + '\''
         logs = exist_db.select(table_name=DB['LOG_TABLE_NAME'], condition=condition)
         # Exclude entities with logs in same day. If no logs, refresh table
@@ -264,8 +264,8 @@ if __name__ == '__main__':
             access_run = access[-access['Entity_Name'].isin(logs['Entity'])]
         else:
             logger.info('Delete existing records and start a new query.')
-            exist_db.delete(table_name=TAX_TABLE)
-            exist_db.delete(table_name=TAX_DETAIL_TABLE)
+            exist_db.delete(table_name=DB['TAX_TABLE'])
+            exist_db.delete(table_name=DB['TAX_DETAIL_TABLE'])
             access_run = access
 
     # Core scraping process
@@ -277,8 +277,8 @@ if __name__ == '__main__':
 
         # Upload to database
         entity_db = Mssql(keys.dbconfig)
-        entity_db.upload(df=tax_df, table_name=TAX_TABLE)
-        entity_db.upload(df=tax_detail_df, table_name=TAX_DETAIL_TABLE)
+        entity_db.upload(df=tax_df, table_name=DB['TAX_TABLE'])
+        entity_db.upload(df=tax_detail_df, table_name=DB['TAX_DETAIL_TABLE'])
         entity_db.log(start=TIME['PRE3MONTH'], end=TIME['TODAY'], Timestamp=TIME['TIMESTAMP'], Source=SITE,
                       Entity=row['Entity_Name'])
         entity_db.close()
@@ -286,10 +286,11 @@ if __name__ == '__main__':
     # Ensure failure of scraping process do not interrupt email and sp execution
     with Mssql(keys.dbconfig) as execute_db:
         # Update Irregular_Ind by executing stored procedure
-        execute_db.call_sp(sp='CHN.Irregular_Tax_Refresh', table_name=TAX_DETAIL_TABLE, table_name2=TAX_TABLE)
+        execute_db.call_sp(sp='CHN.Irregular_Tax_Refresh', table_name=DB['TAX_DETAIL_TABLE'],
+                           table_name2=DB['TAX_TABLE'])
         for index, row in access.iterrows():
             # Get irregular record
-            att = execute_db.call_sp(sp='CHN.Irregular_Tax_ETL', output=True, table_name=TAX_DETAIL_TABLE,
+            att = execute_db.call_sp(sp='CHN.Irregular_Tax_ETL', output=True, table_name=DB['TAX_DETAIL_TABLE'],
                                      entity_name=row['Entity_Name'])
             numeric_col = ['金额', '单价', '税率', '税额']
 
