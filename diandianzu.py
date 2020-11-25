@@ -9,17 +9,17 @@ import random
 import time
 import re
 import utility_email as em
-from utility_commons import PATH, TIME, DB
+from utility_commons import PATH, TIME, DB, get_job_name
 from utility_log import get_logger
 from scrapers import TwoStepScraper
 from db import Mssql, get_sql_list
 import keys
 
-SITE = 'Diandianzu'
+SITE = get_job_name()
 PATH['DETAIL_TABLE'] = 'Scrapy_' + SITE
 PATH['INFO_TABLE'] = 'Scrapy_' + SITE + '_Info'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
-logger = get_logger(SITE)
+logger = get_logger(__name__)
 
 
 class Diandianzu(TwoStepScraper):
