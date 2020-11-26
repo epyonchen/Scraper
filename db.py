@@ -129,31 +129,16 @@ class DbHandler:
 
     # Call stored procedure
     def call_sp(self, sp, output=False, **kwargs):
-        try:
-            inputs = ''
-            if bool(kwargs):
-                inputs = []
-                for key, value in kwargs.items():
-                    inputs.append('@{} = N\'{}\''.format(key, value))
-                inputs = ', '.join(inputs)
-            query = "EXEC {} {}".format(sp, inputs)
-            self.cur.execute(query)
-            logger.info('Execute store procedure: {}'.format(sp))
+        inputs = ''
+        if bool(kwargs):
+            inputs = []
+            for key, value in kwargs.items():
+                inputs.append('@{} = N\'{}\''.format(key, value))
+            inputs = ', '.join(inputs)
+        query = "EXEC {} {}".format(sp, inputs)
+        logger.info('Execute store procedure: {}'.format(sp))
 
-            if output:
-                col_names = [i[0] for i in self.cur.description]
-                att = []
-                for row in self.cur:
-                    att.append(row)
-                self.conn.commit()
-                att = pd.DataFrame(att, columns=col_names)
-                return att
-            else:
-                self.conn.commit()
-                return True
-        except Exception:
-            logger.exception('Fail to call sp')
-            return False
+        return self.run(query=query, output=output)
 
     # Update one column of value with/without condition
     def update(self, table_name, set_col, set_value, set_case=True, schema=None, **kwargs):
@@ -226,6 +211,7 @@ class DbHandler:
     def close(self):
         logger.info('Disconnect database: {}'.format(self.database))
         self.conn.close()
+        self.conn = None
 
     def log(self, log_table_name=DB['LOG_TABLE_NAME'], schema=None, **logs):
         job_name = get_job_name()
@@ -313,6 +299,7 @@ class DbHandler:
     @staticmethod
     def _get_value(df_row, columns_order, new_id=None):
         def _format_value(v):
+
             return 'N\'{}\''.format(str(v).replace('\'', '\'\'') if not pd.isna(v) else '')
 
         df_row = df_row.apply(_format_value)
