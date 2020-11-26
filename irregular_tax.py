@@ -197,7 +197,7 @@ class Tax:
         while True:
             # Exit with error when login takes too much time
             try:
-                func_timeout(timeout=3600, func=self.login())
+                func_timeout(timeout=3600, func=self.login)
 
             except FunctionTimedOut:
                 logger.exception('Timeout.')
