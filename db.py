@@ -319,7 +319,7 @@ class DbHandler:
         if new_id:
             id_value = 'LEFT(\'{}_\' +  CONVERT(NVARCHAR(100), NEWID()),50)'.format(new_id)
             df_row['UID'] = id_value
-        value_init = ','.join(df_row[columns_order].to_list())
+        value_init = ','.join(df_row[columns_order].tolist())
         if 'N\'\'' in value_init:
             value_init = value_init.replace('N\'\',', 'NULL,')
         row_value = '({})'.format(value_init)
