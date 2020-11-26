@@ -85,7 +85,7 @@ class Tax:
             logger.info('Try {} times.'.format(count))
             count += 1
             if count % 100 == 0:
-                return False
+                return None
 
             vpic = self.get_vcode_pic()
             if vpic:
@@ -106,7 +106,7 @@ class Tax:
                         self.web.driver.find_element_by_xpath('//*[@id="crcpic"]').click()
                     except Exception:
                         logger.exception('Unable to refresh validation code pic.')
-                        return False
+                        return None
             else:
                 return False
 
@@ -199,8 +199,8 @@ class Tax:
             try:
                 func_timeout(timeout=3600, func=self.login)
 
-            except FunctionTimedOut:
-                logger.exception('Timeout.')
+            except FunctionTimedOut as e:
+                logger.exception('Timeout. {0}'.format(e))
                 exit(1)
             # except Exception as e:
             #     logger.exception(e)
@@ -297,7 +297,7 @@ if __name__ == '__main__':
             if att is not False:
                 att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
 
-            # _send_email(entity=row['Entity_Name'], receiver=row['Email_List'], attachment=att)
+            _send_email(entity=row['Entity_Name'], receiver=row['Email_List'], attachment=att)
 
     # Send email summary
     scrapyemail_summary = em.Email()
