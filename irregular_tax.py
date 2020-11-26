@@ -25,9 +25,9 @@ import keys
 SITE = get_job_name()
 PATH['SCREENSHOT_PATH'] = PATH['PIC_DIR'] + r'\screen_shot.png'
 PATH['VCODE_PATH'] = PATH['PIC_DIR'] + r'\vcode.png'
-PATH['TAX_DETAIL_FILE'] = r'\Irregular_Tax.xls'
-PATH['TAX_FILE'] = r'\Irregular_Tax_Summary.xls'
-PATH['ATTACHMENT_FILE'] = r'\{}_异常发票清单_{}.xlsx'
+PATH['TAX_DETAIL_FILE'] = 'Irregular_Tax'
+PATH['TAX_FILE'] = 'Irregular_Tax_Summary'
+PATH['ATTACHMENT_FILE'] = '{0}_异常发票清单_{1}'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
 
@@ -202,8 +202,8 @@ class Tax:
             except FunctionTimedOut:
                 logger.exception('Timeout.')
                 exit(1)
-            except Exception as e:
-                logger.exception(e)
+            # except Exception as e:
+            #     logger.exception(e)
 
             success = self.get()
             if success:
@@ -215,12 +215,12 @@ class Tax:
                 continue
 
         df = excel_to_df(path=PATH['FILE_DIR'], file_name=PATH['TAX_FILE'], sheet_name='发票信息')
-        df = df[df['序号'] != 'nan']
+        df.dropna(subset=['序号'], inplace=True)
         df['企业税号'] = entity
         df['服务器号'] = server
 
         detail_df = excel_to_df(path=PATH['FILE_DIR'], file_name=PATH['TAX_DETAIL_FILE'], sheet_name='商品信息')
-        detail_df = detail_df[detail_df['序号'] != 'nan']
+        detail_df.dropna(subset=['序号'], inplace=True)
         detail_df['企业税号'] = entity
         detail_df['服务器号'] = server
         detail_df['timestamp'] = TIME['TIMESTAMP']
