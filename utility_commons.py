@@ -79,7 +79,7 @@ def excel_to_df(file_name, sheet_name=None, path=None):
         logging.info('{}.xlsx does not exist, try {}.xls'.format(file_name, file_name))
         try:
             df = pd.read_excel(folder_dir + r'\{}.xls'.format(file_name), **para)
-            df.fillna(value='', inplace=True)
+            df = df.fillna(value='').replace(to_replace='^nan$', value='', regex=True)
         except Exception:
             logging.exception('Fail to import excel to df')
             return None
