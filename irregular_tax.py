@@ -18,7 +18,7 @@ from baidu_api import Baidu_ocr
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from utility_commons import PATH, TIME, DB, excel_to_df, get_job_name
+from utility_commons import PATH, TIME, DB, excel_to_df, df_to_excel, get_job_name
 from utility_log import get_logger
 import keys
 
@@ -196,14 +196,15 @@ class Tax:
 
         while True:
             # Exit with error when login takes too much time
-            try:
-                func_timeout(timeout=3600, func=self.login)
+            # try:
+            #     func_timeout(timeout=3600, func=self.login)
 
-            except FunctionTimedOut as e:
-                logger.exception('Timeout. {0}'.format(e))
-                exit(1)
+            # except FunctionTimedOut as e:
+            #     logger.exception('Timeout. {0}'.format(e))
+            #     exit(1)
             # except Exception as e:
             #     logger.exception(e)
+            self.login()
 
             success = self.get()
             if success:
@@ -240,6 +241,8 @@ def _send_email(entity, receiver, attachment):
         entity_path = PATH['FILE_DIR'] + PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity)
         subject = '[PAM Tax Checking] - {} 发票异常清单 {}'.format(TIME['TODAY'], entity)
         content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
+        df_to_excel(df=attachment, path=PATH['FILE_DIR'],
+                    file_name=PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity), sheet_name=entity)
         attachment.to_excel(entity_path, index=False, header=True, sheet_name=entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=entity_path)
         logger.info('Delete attachment file.')
@@ -273,7 +276,13 @@ if __name__ == '__main__':
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.
                     format(row['Entity_Name'], row['Server']))
         one_entity = Tax(link=row['Link'], username=row['User_Name'], password=row['Password'])
-        tax_df, tax_detail_df = one_entity.run(entity=row['Entity_Name'], server=row['Server'])
+        try:
+            tax_df, tax_detail_df = func_timeout(timeout=1800, func=one_entity.run,
+                                                 args=(row['Entity_Name'], row['Server']))
+        except FunctionTimedOut as e:
+            logger.exception('Timeout. {0}'.format(e))
+            exit(1)
+        # tax_df, tax_detail_df = one_entity.run(entity=row['Entity_Name'], server=row['Server'])
 
         # Upload to database
         entity_db = Mssql(keys.dbconfig)
