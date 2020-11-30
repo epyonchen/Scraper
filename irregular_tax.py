@@ -152,13 +152,13 @@ class Tax:
                                        'zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;' \
                                        '0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&' \
                                        'xsdjh='.format(str(startdate), str(enddate), str(valid))
-        tax_flag = self.download_file(tax_query, PATH['TAX_FILE'])
-        tax_detail_flag = self.download_file(tax_detail_query, PATH['TAX_DETAIL_FILE'])
+        tax_flag = self.download_file(query=tax_query, file_name=PATH['TAX_FILE'])
+        tax_detail_flag = self.download_file(query=tax_detail_query, file_name=PATH['TAX_DETAIL_FILE'])
         return tax_flag and tax_detail_flag
 
     # Delete previous query file and download a new one
     def download_file(self, query, file_name, file_dir=PATH['FILE_DIR']):
-        file_path = file_dir + file_name
+        file_path = file_dir + r'\{}.xls'.format(file_name)
         self.check_last_query(file_path)
         try:
             self.update_cookies()
