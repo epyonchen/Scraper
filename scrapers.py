@@ -23,7 +23,7 @@ class Scraper:
         self.df = pd.DataFrame()
         self.info = pd.DataFrame()
         self.session = requests.session()
-        self.cookies = requests.session.cookies.RequestsCookieJar()
+        self.cookies = self.session.cookies
         self.switch = True
         self.success = True
 
