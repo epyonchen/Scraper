@@ -109,8 +109,8 @@ def df_to_excel(df, file_name, sheet_name='Results', path=None):
 # Return dict of given df's columns' size
 def get_df_col_size(df):
     col_dict = dict(
-        (col, df[col].astype(str).apply(lambda x: len(x) if x is not None else 0).max()) for col in df.columns.values
-    )
+        (col, max(df[col].astype(str).apply(lambda x: len(x) if x is not None else 0).max(), DB['DEFAULT_COL_SIZE']))
+        for col in df.columns.values)
     return col_dict
 
 

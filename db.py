@@ -65,7 +65,7 @@ class DbHandler:
             if not self.create_table(table_name=table_name, column_name=column_dict, schema=schema):
                 return None
         else:
-            self.update_table_col_size(df=self.df, table_name=table_name, schema=schema)
+            self._update_table_col_size(df=self.df, table_name=table_name, schema=schema)
 
         # Load to temp table
         values = []
@@ -86,13 +86,13 @@ class DbHandler:
                     format(table_name, self._get_columns(column_list), values)
                 logger.info('Insert {} rows'.format(total))
                 if not self.run(temp_query):
-                    return False
+                    return None
                 values = []
                 count = 0
 
         # Build deduplicate where condition
         if dedupe_col:
-            self.drop_table_duplicate(dedupe_col=dedupe_col, df=self.df, table_name=table_name, schema=schema)
+            self._drop_table_duplicate(dedupe_col=dedupe_col, df=self.df, table_name=table_name, schema=schema)
 
         # Columns cross-check
         existing_columns = list(self.select(table_name=table_name, column_name='top 0 *'))
@@ -144,7 +144,7 @@ class DbHandler:
     def update(self, table_name, set_col, set_value, set_case=True, schema=None, **kwargs):
         table = self._get_table(table_name, schema)
         if not self.exist(table):
-            return False
+            return None
 
         if not bool(kwargs):
             condition = ''
@@ -193,12 +193,12 @@ class DbHandler:
         except Exception:
             logger.exception('SQL execution failed. \n {}'.format(query))
             self.conn.rollback()
-            return False
+            return None
 
     # Delete a load
     def delete(self, table_name, schema=None, condition=''):
         if not self.exist(table_name):
-            return False
+            return None
         table = self._get_table(table_name, schema)
         # Condition build up
         if condition != '':
@@ -213,10 +213,10 @@ class DbHandler:
         self.conn.close()
         self.conn = None
 
-    def log(self, log_table_name=DB['LOG_TABLE_NAME'], schema=None, **logs):
+    def log(self, table_name=DB['LOG_TABLE_NAME'], schema=None, **logs):
         job_name = get_job_name()
         log_df = pd.DataFrame([logs])
-        self.upload(df=log_df, table_name=log_table_name, schema=schema, new_id=job_name)
+        self.upload(df=log_df, table_name=table_name, schema=schema, new_id=job_name)
         logger.info('Log current job.')
 
     # Set default schema
@@ -224,7 +224,7 @@ class DbHandler:
         self.schema = new_schema
 
     # Get table's columns' size
-    def get_table_col_size(self, table_name):
+    def _get_table_col_size(self, table_name):
         col_info = self.select(table_name='COLUMNS', schema='INFORMATION_SCHEMA',
                                condition='TABLE_NAME = \'{0}\''.format(table_name))
         if (col_info is not None) and (not col_info.empty):
@@ -233,8 +233,8 @@ class DbHandler:
         return None
 
     # Update column size between input df/target
-    def update_table_col_size(self, df, table_name, schema=None):
-        table_col_info = self.get_table_col_size(table_name)
+    def _update_table_col_size(self, df, table_name, schema=None):
+        table_col_info = self._get_table_col_size(table_name)
         df_col_info = get_df_col_size(df)
         if table_col_info:
             common_cols = set((table_col_info.keys())) & set((df_col_info.keys()))
@@ -247,7 +247,7 @@ class DbHandler:
                     self.run(query, output=False)
 
     # Drop duplicate records in table in dedupe_col
-    def drop_table_duplicate(self, dedupe_col, df, table_name, schema=None):
+    def _drop_table_duplicate(self, dedupe_col, df, table_name, schema=None):
         table_df = self.select(table_name=table_name, schema=schema, column_name=self._get_columns(dedupe_col))
         common_columns = list(set(table_df.columns.values) & set(df.columns.values))
         dedupe_source = 'dedupe_source'
@@ -265,6 +265,34 @@ class DbHandler:
         self.delete(table_name=table_name, schema=schema, condition='[{}] IN {}'.
                     format(dedupe_col, self._get_value(dedup_df[dedupe_col], dedup_df[dedupe_col].index)))
 
+    def get_logs(self, condition='[Source] = \'{}\''.format(get_job_name()), table_name=DB['LOG_TABLE_NAME'],
+                 schema=None, entity_column='Entity'):
+        history = self.select(table_name=table_name, schema=schema, condition=condition)
+        if (history is None) or history.empty:
+            logger.info('No historical records in logs table.')
+            return set()
+        else:
+            return set(history[entity_column].unique().tolist()) if entity_column in history.columns else set()
+
+    def get_to_runs(self, table_name=DB['LOG_TABLE_NAME'], schema=None, entity_column='Entity', condition=None,
+                    his_full_set=None):
+
+        if his_full_set is None:
+            his_full_set = self.get_logs_history(table_name=table_name, schema=None, entity_column=entity_column)
+        existing_set = self.get_logs_history(table_name=table_name, schema=schema, condition=condition,
+                                             entity_column=entity_column)
+        if his_full_set:
+            return list(his_full_set - existing_set)
+        else:
+            logger.error('Not able to get ready-to-run entities ')
+            return None
+
+    # Get habdler's connection
+    @staticmethod
+    def _set_con(config):
+        logger.error('No package.')
+        return config
+
     # Format table if schema is not default, temp table when schema is False
     def _get_table(self, table_name, schema=None):
         if schema:
@@ -274,12 +302,6 @@ class DbHandler:
         else:
             table = table_name
         return table
-
-    # Get habdler's connection
-    @staticmethod
-    def _set_con(config):
-        logger.error('No package.')
-        return config
 
     # Format columns into brackets
     @staticmethod
@@ -329,7 +351,6 @@ class ODBC(DbHandler):
 
     @staticmethod
     def _set_con(config):
-
         driver = config['driver'] if 'driver' in config.keys() else 'SQL Server Native Client 11.0'
         con_str = 'DRIVER={0};SERVER={1};DATABASE={2};Trusted_Connection=yes;'. \
             format(driver, config['server'], config['database'])

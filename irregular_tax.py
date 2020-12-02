@@ -152,13 +152,13 @@ class Tax:
                                        'zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;' \
                                        '0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&' \
                                        'xsdjh='.format(str(startdate), str(enddate), str(valid))
-        tax_flag = self.download_file(tax_query, PATH['TAX_FILE'])
-        tax_detail_flag = self.download_file(tax_detail_query, PATH['TAX_DETAIL_FILE'])
+        tax_flag = self.download_file(query=tax_query, file_name=PATH['TAX_FILE'])
+        tax_detail_flag = self.download_file(query=tax_detail_query, file_name=PATH['TAX_DETAIL_FILE'])
         return tax_flag and tax_detail_flag
 
     # Delete previous query file and download a new one
     def download_file(self, query, file_name, file_dir=PATH['FILE_DIR']):
-        file_path = file_dir + file_name
+        file_path = file_dir + r'\{}.xls'.format(file_name)
         self.check_last_query(file_path)
         try:
             self.update_cookies()
@@ -233,7 +233,7 @@ def _send_email(entity, receiver, attachment):
     # Send email
     scrapymail = em.Email()
 
-    if (attachment is False) or attachment.empty:
+    if (attachment is None) or attachment.empty:
         subject = '[PAM Tax Checking] - {} 发票无异常 {}'.format(TIME['TODAY'], entity)
         content = 'Hi All,\r\n\r\n{}的发票无异常记录。\r\n\r\nThanks.'.format(entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
@@ -243,7 +243,7 @@ def _send_email(entity, receiver, attachment):
         content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
         df_to_excel(df=attachment, path=PATH['FILE_DIR'],
                     file_name=PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity), sheet_name=entity)
-        attachment.to_excel(entity_path, index=False, header=True, sheet_name=entity)
+        # attachment.to_excel(entity_path, index=False, header=True, sheet_name=entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=entity_path)
         logger.info('Delete attachment file.')
         os.remove(entity_path)
@@ -257,8 +257,8 @@ if __name__ == '__main__':
 
     with Mssql(keys.dbconfig) as exist_db:
         access = exist_db.select(DB['ACCESS_TABLE'])
-        condition = '[Timestamp] >= {0} AND [Entity] IN {1} AND [Source] = {2}'. \
-            format(get_sql_list(TIME['TODAY']), get_sql_list(access['Entity_Name'].tolist()), get_sql_list(SITE))
+        condition = '[Timestamp] >= {0} AND [Source] = {2}'. \
+            format(get_sql_list(TIME['TODAY']), get_sql_list(SITE))
         entities = '\'' + '\', \''.join(list(access['Entity_Name'])) + '\''
         logs = exist_db.select(table_name=DB['LOG_TABLE_NAME'], condition=condition)
         # Exclude entities with logs in same day. If no logs, refresh table
@@ -276,13 +276,7 @@ if __name__ == '__main__':
         logger.info('---------------   Start new job. Entity: {} Server:{}    ---------------'.
                     format(row['Entity_Name'], row['Server']))
         one_entity = Tax(link=row['Link'], username=row['User_Name'], password=row['Password'])
-        try:
-            tax_df, tax_detail_df = func_timeout(timeout=1800, func=one_entity.run,
-                                                 args=(row['Entity_Name'], row['Server']))
-        except FunctionTimedOut as e:
-            logger.exception('Timeout. {0}'.format(e))
-            exit(1)
-        # tax_df, tax_detail_df = one_entity.run(entity=row['Entity_Name'], server=row['Server'])
+        tax_df, tax_detail_df = one_entity.run(entity=row['Entity_Name'], server=row['Server'])
 
         # Upload to database
         entity_db = Mssql(keys.dbconfig)
