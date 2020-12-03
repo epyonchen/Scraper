@@ -103,7 +103,7 @@ def df_to_excel(df, file_name, sheet_name='Results', path=None):
         logging.exception('Fail to export {} to excel.'.format(file_name))
         return None
 
-    return True
+    return file_path
 
 
 # Return dict of given df's columns' size

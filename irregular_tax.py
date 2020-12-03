@@ -234,16 +234,14 @@ def _send_email(entity, receiver, attachment):
     scrapymail = em.Email()
 
     if (attachment is None) or attachment.empty:
-        subject = '[PAM Tax Checking] - {} 发票无异常 {}'.format(TIME['TODAY'], entity)
+        subject = '[PAM Tax Checking] - {0} 发票无异常 {1}'.format(TIME['TODAY'], entity)
         content = 'Hi All,\r\n\r\n{}的发票无异常记录。\r\n\r\nThanks.'.format(entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
     else:
-        entity_path = PATH['FILE_DIR'] + PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity)
-        subject = '[PAM Tax Checking] - {} 发票异常清单 {}'.format(TIME['TODAY'], entity)
+        subject = '[PAM Tax Checking] - {0} 发票异常清单 {1}'.format(TIME['TODAY'], entity)
         content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
-        df_to_excel(df=attachment, path=PATH['FILE_DIR'],
+        entity_path = df_to_excel(df=attachment, path=PATH['FILE_DIR'],
                     file_name=PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity), sheet_name=entity)
-        # attachment.to_excel(entity_path, index=False, header=True, sheet_name=entity)
         scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=entity_path)
         logger.info('Delete attachment file.')
         os.remove(entity_path)
@@ -257,7 +255,7 @@ if __name__ == '__main__':
 
     with Mssql(keys.dbconfig) as exist_db:
         access = exist_db.select(DB['ACCESS_TABLE'])
-        condition = '[Timestamp] >= {0} AND [Source] = {2}'. \
+        condition = '[Timestamp] >= {0} AND [Source] = {1}'. \
             format(get_sql_list(TIME['TODAY']), get_sql_list(SITE))
         entities = '\'' + '\', \''.join(list(access['Entity_Name'])) + '\''
         logs = exist_db.select(table_name=DB['LOG_TABLE_NAME'], condition=condition)
