@@ -26,6 +26,7 @@ PATH = {
     'PIC_DIR': __TARGET_DIR + r'\Vcode',
     'FILE_DIR': __TARGET_DIR + r'\Result',
     'LOG_DIR': __TARGET_DIR + r'\Log',
+    'JOB_DIR': __TARGET_DIR + r'\Job'
 
 }
 
