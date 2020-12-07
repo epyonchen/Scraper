@@ -8,9 +8,10 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import pagemanipulate as pm
-from utility_log import get_logger
-from utility_commons import get_job_name, TIME
 from func_timeout import func_set_timeout
+from utils.utility_log import get_logger
+from utils.utility_commons import get_job_name, TIME
+
 
 logger = get_logger(__name__)
 

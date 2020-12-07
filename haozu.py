@@ -7,11 +7,11 @@ Created on Dec 21st 2018
 import random
 import time
 import re
-import utility_email as em
+import utils.utility_email as em
 from db import Mssql, get_sql_list
 from scrapers import TwoStepScraper
-from utility_commons import PATH, TIME, DB, get_job_name
-from utility_log import get_logger
+from utils.utility_commons import PATH, TIME, DB, get_job_name
+from utils.utility_log import get_logger
 import keys
 
 SITE = get_job_name()

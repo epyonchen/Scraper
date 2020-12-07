@@ -1,10 +1,11 @@
 import random
 import time
 import re
-from utility_log import get_logger
-from scrapers import TwoStepScraper
-from utility_commons import excel_to_df, df_to_excel
 import pandas as pd
+from scrapers import TwoStepScraper
+from utils.utility_log import get_logger
+from utils.utility_commons import excel_to_df, df_to_excel
+
 logger = get_logger(__name__)
 
 

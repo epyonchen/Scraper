@@ -5,11 +5,10 @@ Created on June 24th 2018
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-
-import geocodeconvert as gc
 from default_api import default_api
-from utility_commons import get_nested_value
-from utility_log import get_logger
+from utils.utility_geocode import gcj02_to_wgs84
+from utils.utility_commons import get_nested_value
+from utils.utility_log import get_logger
 import keys
 
 logger = get_logger('Amap')
@@ -47,7 +46,7 @@ class Amap(default_api):
 
     @staticmethod
     def geocode_convert(lon, lat):
-        return pd.Series(gc.gcj02_to_wgs84(lon, lat))
+        return pd.Series(gcj02_to_wgs84(lon, lat))
 
     # Query from input df
     def query(self, source_df, **kwargs):
@@ -86,9 +85,20 @@ class Amap(default_api):
 
 if __name__ == '__main__':
     import pandas as pd
-
-    from utility_commons import excel_to_df, df_to_excel
+    from utils.utility_commons import excel_to_df, df_to_excel
     amap = Amap('text')
-    # df = pd.DataFrame()
-    # df = df.append([{'keywords': '东风东路5号', 'city': 'guangzhou', 'types': '120000'}], ignore_index=True)
+    # input_df = pd.DataFrame()
+    # input_df = input_df.append([{'keywords': '广东省广州市天河区体育东路160号平安大厦18楼、20-26楼', 'city': '广州'},])#, 'types': '120000'
+    #
+    plist = ['ref_Branch', 'ref_Brand', 'ref_name', 'ref_address', 'ref_pname', 'ref_cityname', 'ref_adname', 'MapIT_lon', 'MapIT_lat']
+    city = ['Guangzhou', 'Shanghai', 'Shenzhen', 'Beijing', 'Nanjing', 'Suzhou', 'Chengdu', 'Tianjin', 'Qingdao', 'Wuhan']
+    result = pd.DataFrame(columns=plist)
+    for c in city:
+
+        input_df = excel_to_df(file_name='map', sheet_name=c)
+
+        output_df = amap.query(input_df)
+        result = pd.concat([result, output_df[plist]])
+
+    df_to_excel(df=result, file_name='map', sheet_name='result-address')
 

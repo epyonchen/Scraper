@@ -8,9 +8,9 @@ Created on Jan 9th 2019
 import random
 import time
 import re
-import utility_email as em
-from utility_commons import PATH, TIME, DB, get_job_name
-from utility_log import get_logger
+import utils.utility_email as em
+from utils.utility_commons import PATH, TIME, DB, get_job_name
+from utils.utility_log import get_logger
 from scrapers import TwoStepScraper
 from db import Mssql, get_sql_list
 import keys

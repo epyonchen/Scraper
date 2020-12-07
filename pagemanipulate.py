@@ -13,7 +13,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from utility_log import get_logger
+from utils.utility_log import get_logger
 
 _DEFAULT_PREFERENCE = {
     'browser.download.folderList': 2,

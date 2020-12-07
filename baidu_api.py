@@ -9,11 +9,11 @@ Created on June 24th 2018
 import random
 import time
 import urllib
-import geocodeconvert as gc
+from utils.utility_geocode import bd09_to_wgs84
 from aip import AipOcr
 from default_api import default_api
-from utility_commons import get_nested_value
-from utility_log import get_logger
+from utils.utility_commons import get_nested_value
+from utils.utility_log import get_logger
 import keys
 
 logger = get_logger('scrapy')
@@ -52,7 +52,7 @@ class Baidu_map(default_api):
     # Convert bd to wgs
     @staticmethod
     def geocode_convert(lon, lat):
-        return pd.Series(gc.bd09_to_wgs84(lon, lat))
+        return pd.Series(bd09_to_wgs84(lon, lat))
 
     # Validate if location in return records
     @staticmethod

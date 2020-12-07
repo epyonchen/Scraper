@@ -9,17 +9,16 @@ import requests
 import os
 import pandas as pd
 import pagemanipulate as pm
-import utility_email as em
+import utils.utility_email as em
 from db import Mssql, get_sql_list
-from func_timeout import func_set_timeout, func_timeout
-from func_timeout.exceptions import FunctionTimedOut
+from func_timeout import func_set_timeout
 from PIL import Image
 from baidu_api import Baidu_ocr
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from utility_commons import PATH, TIME, DB, excel_to_df, df_to_excel, get_job_name
-from utility_log import get_logger
+from utils.utility_commons import PATH, TIME, DB, excel_to_df, df_to_excel, get_job_name
+from utils.utility_log import get_logger
 import keys
 
 SITE = get_job_name()

@@ -8,8 +8,8 @@ Created on Jan 24th 2019
 import pymssql
 import pandas as pd
 import pyodbc
-from utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
-from utility_log import get_logger
+from utils.utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
+from utils.utility_log import get_logger
 
 logger = get_logger(__name__)
 

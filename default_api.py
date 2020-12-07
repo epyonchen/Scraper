@@ -10,7 +10,7 @@ import pandas as pd
 import requests
 import hashlib
 from urllib import parse
-from utility_log import get_logger
+from utils.utility_log import get_logger
 
 logger = get_logger(__name__)
 
