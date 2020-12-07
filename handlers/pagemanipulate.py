@@ -112,17 +112,3 @@ class Page:
         return cookies
 
 
-if __name__ == '__main__':
-    url = 'http://210.76.69.38:82/JDGG/QTCGList.aspx?CGLX=A1'
-    page = Page(url, 'normal')
-    # page.click("//div[@class='content'")
-    print(page.driver)
-    # print(page.driver.page_source)
-    # search_soup = BeautifulSoup(page.driver.page_source, 'lxml')
-    #
-    # office_list = search_soup.find('div', attrs={'class': 'chengxin'}).find_all('a')
-    # print(office_list)
-    page.close()
-
-
-

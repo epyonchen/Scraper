@@ -6,9 +6,9 @@ Created on April 24th 2020
 """
 
 
-import pandas as pd
 import requests
 import hashlib
+import pandas as pd
 from urllib import parse
 from utils.utility_log import get_logger
 

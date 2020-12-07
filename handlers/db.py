@@ -6,10 +6,11 @@ Created on Jan 24th 2019
 """
 
 import pymssql
-import pandas as pd
 import pyodbc
-from utils.utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
+import pandas as pd
 from utils.utility_log import get_logger
+from utils.utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
+
 
 logger = get_logger(__name__)
 
@@ -358,9 +359,6 @@ class ODBC(DbHandler):
             con_str += 'UID={0};PWD={1};'.format(config['username'], config['password'])
         return pyodbc.connect(con_str)
 
-    # TODO: add bcp upload
-    # TODO: rebuild log function
-
 
 def get_sql_list(values):
     if isinstance(values, str):
@@ -368,3 +366,5 @@ def get_sql_list(values):
 
     values = map(lambda x: 'N\'{}\''.format(x), values)
     return '({0})'.format(', '.join(values))
+
+# TODO: add bcp upload

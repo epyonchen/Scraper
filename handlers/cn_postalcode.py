@@ -2,7 +2,7 @@ import random
 import time
 import re
 import pandas as pd
-from scrapers import TwoStepScraper
+from handlers.scrapers import TwoStepScraper
 from utils.utility_log import get_logger
 from utils.utility_commons import excel_to_df, df_to_excel
 

@@ -9,11 +9,12 @@ Created on June 24th 2018
 import random
 import time
 import urllib
-from utils.utility_geocode import bd09_to_wgs84
+import pandas as pd
 from aip import AipOcr
-from default_api import default_api
+from handlers.default_api import default_api
 from utils.utility_commons import get_nested_value
 from utils.utility_log import get_logger
+from utils.utility_geocode import bd09_to_wgs84
 import keys
 
 logger = get_logger(__name__)
@@ -173,14 +174,3 @@ class Baidu_ocr(default_api):
     def renew_client_ocr(self):
         self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
         self.switch += 1
-
-
-if __name__ == '__main__':
-    from utility_commons import TARGET_DIR
-    import pandas as pd
-    df = pd.DataFrame()
-    df = df.append([{'q': '', 'from': 'cn', 'to': 'en'}], ignore_index=True)
-    print(df)
-    bm = Baidu_translate()
-    r = bm.query(df)
-    print(r)

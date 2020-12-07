@@ -7,7 +7,7 @@ Created on April 18th 2019
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import pagemanipulate as pm
+import handlers.pagemanipulate as pm
 from func_timeout import func_set_timeout
 from utils.utility_log import get_logger
 from utils.utility_commons import get_job_name, TIME

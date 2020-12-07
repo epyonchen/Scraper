@@ -8,16 +8,12 @@ import random
 import time
 import re
 import utils.utility_email as em
-from db import Mssql, get_sql_list
-from scrapers import TwoStepScraper
-from utils.utility_commons import PATH, TIME, DB, get_job_name
+from handlers.db import Mssql, get_sql_list
+from handlers.scrapers import TwoStepScraper
 from utils.utility_log import get_logger
+from utils.utility_commons import PATH, TIME, DB, get_job_name
 import keys
 
-SITE = get_job_name()
-PATH['DETAIL_TABLE'] = 'Scrapy_' + SITE
-PATH['INFO_TABLE'] = 'Scrapy_' + SITE + '_Info'
-PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 logger = get_logger(__name__)
 
 
@@ -142,29 +138,3 @@ class Haozu(TwoStepScraper):
         self.info = _limit_len(self.info)
         return self
 
-
-if __name__ == '__main__':
-
-    cities = ['gz', 'sz', 'sh', 'bj', 'cd']
-
-    with Mssql(config=keys.dbconfig_mkt) as exist_db:
-        con_city = get_sql_list(cities)
-        condition = '[Timestamp] >= {0} AND [Entity] IN {1} AND [Source] = {2}'.\
-            format(get_sql_list(TIME['TODAY']), get_sql_list(cities), get_sql_list(SITE))
-        existing_cities = exist_db.select(table_name=DB['LOG_TABLE_NAME'], condition=condition)
-        cities_run = list(set(cities) - set(existing_cities['Entity'].values.tolist()))
-
-    for city in cities_run:
-        city_object = Haozu(city)
-        city_object.run()
-
-        with Mssql(config=keys.dbconfig_mkt) as entity_db:
-            entity_db.upload(df=city_object.df, table_name=PATH['DETAIL_TABLE'], schema='CHN_MKT', new_id=SITE)
-            entity_db.upload(df=city_object.info, table_name=PATH['INFO_TABLE'], schema='CHN_MKT', new_id=SITE,
-                             dedupe_col='Source_ID')
-            entity_db.log(Entity=city, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(city_object.info))
-
-    scrapyemail = em.Email()
-    scrapyemail.send(subject='[Scrapy] ' + PATH['DETAIL_TABLE'], content='Done', attachment=PATH['LOG_PATH'])
-    scrapyemail.close()
-    exit(0)
