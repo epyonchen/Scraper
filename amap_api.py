@@ -11,7 +11,7 @@ from utils.utility_commons import get_nested_value
 from utils.utility_log import get_logger
 import keys
 
-logger = get_logger('Amap')
+logger = get_logger(__name__)
 
 
 class Amap(default_api):

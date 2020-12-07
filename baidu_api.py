@@ -16,7 +16,7 @@ from utils.utility_commons import get_nested_value
 from utils.utility_log import get_logger
 import keys
 
-logger = get_logger('scrapy')
+logger = get_logger(__name__)
 
 
 class Baidu_map(default_api):
