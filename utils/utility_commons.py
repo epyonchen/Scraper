@@ -71,11 +71,12 @@ def get_nested_value(record):
 # Convert  excel to dataframe
 def excel_to_df(file_name, sheet_name=None, path=None):
     folder_dir = path if path else PATH['TARGET_DIR']
-    para = {'sort': False, 'dtype': str}
+    para = {'sort': False, 'dtype': str, 'engine': 'openpyxl'}
     if sheet_name:
         para.update({'sheet_name': sheet_name})
     try:
         df = pd.read_excel(folder_dir + r'\{}.xlsx'.format(file_name), **para)
+
     except:
         logging.info('{}.xlsx does not exist, try {}.xls'.format(file_name, file_name))
         try:
@@ -84,7 +85,7 @@ def excel_to_df(file_name, sheet_name=None, path=None):
         except Exception:
             logging.exception('Fail to import excel to df')
             return None
-
+    df = df.fillna(value='').replace(to_replace='^nan$', value='', regex=True)
     return df
 
 
