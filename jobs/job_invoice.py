@@ -15,13 +15,13 @@ PATH['ATTACHMENT_FILE'] = '{0}_异常发票清单_{1}'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + PATH['SITE'] + '.log'
 
 
-DB['DETAIL_TABLE'] = 'Scrapy_' + PATH['SITE']
-DB['INFO_TABLE'] = 'Scrapy_' + PATH['SITE'] + '_Summary'
+DB['TAX_DETAIL_TABLE'] = 'Scrapy_' + PATH['SITE']
+DB['TAX_INFO_TABLE'] = 'Scrapy_' + PATH['SITE'] + '_Summary'
 DB['ACCESS_TABLE'] = 'Scrapy_Irregular_Tax_Access'
 
 
 with Mssql(keys.dbconfig) as exist_db:
-    access = exist_db.get_logs(entity_column=None)
+    access = exist_db.select(table_name=DB['ACCESS_TABLE'])
     condition = '[Timestamp] >= {0} AND [Source] = {1}'.format(get_sql_list(TIME['TODAY']), get_sql_list(PATH['SITE']))
     entities_done = exist_db.get_to_runs(condition=condition)
     # Exclude entities with logs in same day. If no logs, refresh table
@@ -30,7 +30,7 @@ with Mssql(keys.dbconfig) as exist_db:
         access_run = access[-access['Entity_Name'].isin(entities_done)]
     else:
         logger.info('Delete existing records and start a new query.')
-        exist_db.delete(table_name=DB['TAX_TABLE'])
+        exist_db.delete(table_name=DB['TAX_INFO_TABLE'])
         exist_db.delete(table_name=DB['TAX_DETAIL_TABLE'])
         access_run = access
 
@@ -43,8 +43,8 @@ for index, row in access_run.iterrows():
 
     # Upload to database
     entity_db = Mssql(keys.dbconfig)
-    entity_db.upload(df=tax_df, table_name=DB['INFO_TABLE'])
-    entity_db.upload(df=tax_detail_df, table_name=DB['DETAIL_TABLE'])
+    entity_db.upload(df=tax_df, table_name=DB['TAX_INFO_TABLE'])
+    entity_db.upload(df=tax_detail_df, table_name=DB['TAX_DETAIL_TABLE'])
     entity_db.log(start=TIME['PRE3MONTH'], end=TIME['TODAY'], Timestamp=TIME['TIMESTAMP'], Source=PATH['SITE'],
                   Entity=row['Entity_Name'])
     entity_db.close()
@@ -53,7 +53,7 @@ for index, row in access_run.iterrows():
 with Mssql(keys.dbconfig) as execute_db:
     # Update Irregular_Ind by executing stored procedure
     execute_db.call_sp(sp='CHN.Irregular_Tax_Refresh', table_name=DB['TAX_DETAIL_TABLE'],
-                       table_name2=DB['TAX_TABLE'])
+                       table_name2=DB['TAX_DETAIL_TABLE'])
     for index, row in access.iterrows():
         # Get irregular record
         att = execute_db.call_sp(sp='CHN.Irregular_Tax_ETL', output=True, table_name=DB['TAX_DETAIL_TABLE'],

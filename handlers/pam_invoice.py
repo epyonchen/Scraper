@@ -68,8 +68,8 @@ class PAM_Invoice:
     def get_vcode(self):
         global count
         while True:
-
-            logger.info('Try {} times.'.format(count))
+            if count % 10 == 0:
+                logger.info('Try {} times.'.format(count))
             count += 1
             if count % 100 == 0:
                 return None
