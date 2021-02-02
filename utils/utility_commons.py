@@ -4,7 +4,6 @@ Created on Thur May 16th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-
 import os
 import sys
 import re
@@ -38,7 +37,6 @@ DB = {
     'LOG_TABLE_NAME': 'Scrapy_Logs',
 }
 
-
 # time
 __NOW = datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong'))
 TIME = {
@@ -47,7 +45,6 @@ TIME = {
     'YESTERDAY': (__NOW - relativedelta(days=1)).strftime('%Y-%m-%d'),
     'PRE3MONTH': (__NOW - relativedelta(months=3)).strftime('%Y-%m-%d'),
 }
-
 
 # email
 MAIL = {
@@ -137,3 +134,20 @@ def get_job_name():
     name_pattern = re.compile(r'\w+\.py')
     name = re.search(name_pattern, str(module.__file__)).group(0)
     return name.replace(r'.py', '')
+
+
+# Check if geckodriver is installed, if not download one
+def get_geckodriver():
+    for p in sys.path:
+        if os.path.isfile(p + '\\Scripts\\geckodriver.exe'):
+            logging.info('geckodriver is installed.')
+            return True
+
+    logging.info('geockodrive is not installed, downloading...')
+    from webdrivermanager import GeckoDriverManager
+    gdd = GeckoDriverManager()
+    try:
+        gdd.download_and_install()
+        logging.info('geckodriver is installed.')
+    except Exception:
+        logging.exception('Not able to install geckodirver.\n')
