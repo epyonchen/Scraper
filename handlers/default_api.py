@@ -95,6 +95,7 @@ class default_api:
                     for k, v in row.to_dict().items():
                         ref_row['ref_' + k] = v
                     for call in one_call:
+                        call = self.geocode_convert(call)
                         call.update(ref_row)
                     results = results.append(one_call, ignore_index=True, sort=False)
                 else:
@@ -116,8 +117,8 @@ class default_api:
 
     # Convert lat lon
     @staticmethod
-    def geocode_convert(lat, lon):
-        return lat, lon
+    def geocode_convert(output):
+        return output
 
     # Return md5 encode
     @staticmethod

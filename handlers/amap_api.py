@@ -45,18 +45,20 @@ class Amap(default_api):
         super().__init__(api)
         self.base = 'https://restapi.amap.com/v3/place/{}?'.format(api)
 
-    @staticmethod
-    def geocode_convert(lon, lat):
-        return pd.Series(gcj02_to_wgs84(lon, lat))
+    def geocode_convert(self, output):
+        if output:
+            output['lon'], output['lat'] = str(output['location']).split(',')
+            output['MapIT_lon'], output['MapIT_lat'] = gcj02_to_wgs84(float(output['lon']), float(output['lat']))
+        return output
 
     # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Amap, self).query(source_df=source_df, **kwargs)
-        if not results.empty:
-            results[['lon', 'lat']] = results['location'].str.split(',', 1, expand=True)
-            results[['MapIT_lon', 'MapIT_lat']] = results.apply(
-                lambda x: self.geocode_convert(float(x['lon']), float(x['lat'])),
-                axis=1)
+        # if not results.empty:
+        #     results[['lon', 'lat']] = results['location'].str.split(',', 1, expand=True)
+        #     results[['MapIT_lon', 'MapIT_lat']] = results.apply(
+        #         lambda x: self.geocode_convert(float(x['lon']), float(x['lat'])),
+        #         axis=1)
         return results
 
     def _get_sign(self, query):

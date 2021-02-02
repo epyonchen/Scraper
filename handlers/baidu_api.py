@@ -51,9 +51,11 @@ class Baidu_map(default_api):
     }
 
     # Convert bd to wgs
-    @staticmethod
-    def geocode_convert(lon, lat):
-        return pd.Series(bd09_to_wgs84(lon, lat))
+    def geocode_convert(self, output):
+        if output:
+            output['lon'], output['lat'] = str(output['location']).split(',')
+            output['MapIT_lon'], output['MapIT_lat'] = bd09_to_wgs84(float(output['lon']), float(output['lat']))
+        return output
 
     # Validate if location in return records
     @staticmethod
@@ -77,10 +79,10 @@ class Baidu_map(default_api):
     # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Baidu_map, self).query(source_df=source_df, **kwargs)
-        if not results.empty:
-            results[['MapIT_lon', 'MapIT_lat']] = results.apply(
-                lambda x: self.geocode_convert(float(x['lng']), float(x['lat'])),
-                axis=1)
+        # if not results.empty:
+        #     results[['MapIT_lon', 'MapIT_lat']] = results.apply(
+        #         lambda x: self.geocode_convert(float(x['lng']), float(x['lat'])),
+        #         axis=1)
 
         return results
 
