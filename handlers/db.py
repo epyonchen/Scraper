@@ -110,7 +110,7 @@ class DbHandler:
             logger.error('Fail to load data into {0}'.format(table_name))
 
     # Select all
-    def select(self, table_name, column_name='*', schema=None, condition=''):
+    def select(self, table_name, column_name='*', schema=None, condition=None):
         if column_name != '*':
             columns = self._get_columns(column_name)
         else:
@@ -121,8 +121,7 @@ class DbHandler:
         table = self._get_table(table_name, schema)
 
         # Condition build up
-        if condition != '':
-            condition = 'WHERE ' + condition
+        condition = ('WHERE ' + condition) if condition is not None else ''
 
         query = "SELECT {} FROM {} {}".format(columns, table, condition)
         result = pd.read_sql(query, self.conn)
@@ -282,7 +281,9 @@ class DbHandler:
                     source=None, his_full=None):
 
         if his_full is None:
-            his_full = self.get_logs(table_name=table_name, schema=None, entity_column=entity_column, source=source)
+            full_condition = '[Source] = \'{}\''.format(source)
+            his_full = self.get_logs(table_name=table_name, schema=None, entity_column=entity_column,
+                                     condition=full_condition)
         existing = self.get_logs(table_name=table_name, schema=schema, condition=condition, entity_column=entity_column)
         if his_full:
             return list(set(his_full) - set(existing))
