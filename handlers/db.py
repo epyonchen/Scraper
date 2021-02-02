@@ -266,24 +266,26 @@ class DbHandler:
         self.delete(table_name=table_name, schema=schema, condition='[{}] IN {}'.
                     format(dedupe_col, self._get_value(dedup_df[dedupe_col], dedup_df[dedupe_col].index)))
 
-    def get_logs(self, condition='[Source] = \'{}\''.format(get_job_name()), table_name=DB['LOG_TABLE_NAME'],
-                 schema=None, entity_column='Entity'):
+    def get_logs(self, table_name=DB['LOG_TABLE_NAME'], entity_column='Entity', schema=None, condition=None):
+        # if source and (not condition):
+        #     condition = '[Source] = \'{}\''.format(source)
         history = self.select(table_name=table_name, schema=schema, condition=condition)
         if (history is None) or history.empty:
             logger.info('No historical records in logs table.')
-            return set()
+            return None
         else:
-            return set(history[entity_column].unique().tolist()) if entity_column in history.columns else set()
+            if entity_column is None:
+                return history
+            return history[entity_column].unique().tolist() if entity_column in history.columns else None
 
-    def get_to_runs(self, table_name=DB['LOG_TABLE_NAME'], schema=None, entity_column='Entity', condition=None,
-                    his_full_set=None):
+    def get_to_runs(self, table_name=DB['LOG_TABLE_NAME'], entity_column='Entity', schema=None, condition=None,
+                    source=None, his_full=None):
 
-        if his_full_set is None:
-            his_full_set = self.get_logs_history(table_name=table_name, schema=None, entity_column=entity_column)
-        existing_set = self.get_logs_history(table_name=table_name, schema=schema, condition=condition,
-                                             entity_column=entity_column)
-        if his_full_set:
-            return list(his_full_set - existing_set)
+        if his_full is None:
+            his_full = self.get_logs(table_name=table_name, schema=None, entity_column=entity_column, source=source)
+        existing = self.get_logs(table_name=table_name, schema=schema, condition=condition, entity_column=entity_column)
+        if his_full:
+            return list(set(his_full) - set(existing))
         else:
             logger.error('Not able to get ready-to-run entities ')
             return None
