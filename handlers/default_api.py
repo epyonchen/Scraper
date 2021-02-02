@@ -6,11 +6,11 @@ Created on April 24th 2020
 """
 
 
-import pandas as pd
 import requests
 import hashlib
+import pandas as pd
 from urllib import parse
-from utility_log import get_logger
+from utils.utility_log import get_logger
 
 logger = get_logger(__name__)
 
@@ -95,6 +95,7 @@ class default_api:
                     for k, v in row.to_dict().items():
                         ref_row['ref_' + k] = v
                     for call in one_call:
+                        call = self.geocode_convert(call)
                         call.update(ref_row)
                     results = results.append(one_call, ignore_index=True, sort=False)
                 else:
@@ -116,8 +117,8 @@ class default_api:
 
     # Convert lat lon
     @staticmethod
-    def geocode_convert(lat, lon):
-        return lat, lon
+    def geocode_convert(output):
+        return output
 
     # Return md5 encode
     @staticmethod

@@ -4,7 +4,6 @@ Created on Thur May 16th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-
 import os
 import sys
 import re
@@ -19,13 +18,15 @@ from openpyxl import load_workbook
 # sys.path.append(r'C:\Users\benson.chen\Credentials')
 
 __TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper'
+__SCRIPT_DIR = r'C:\Users\benson.chen\PycharmProjects\Scraper'
 # path
 PATH = {
-    'SCRIPT_DIR': os.path.dirname(__file__),
+    'SCRIPT_DIR': __SCRIPT_DIR,
     'TARGET_DIR': __TARGET_DIR,
     'PIC_DIR': __TARGET_DIR + r'\Vcode',
     'FILE_DIR': __TARGET_DIR + r'\Result',
     'LOG_DIR': __TARGET_DIR + r'\Log',
+    'JOB_DIR': __SCRIPT_DIR + r'\jobs'
 
 }
 
@@ -36,7 +37,6 @@ DB = {
     'LOG_TABLE_NAME': 'Scrapy_Logs',
 }
 
-
 # time
 __NOW = datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong'))
 TIME = {
@@ -45,7 +45,6 @@ TIME = {
     'YESTERDAY': (__NOW - relativedelta(days=1)).strftime('%Y-%m-%d'),
     'PRE3MONTH': (__NOW - relativedelta(months=3)).strftime('%Y-%m-%d'),
 }
-
 
 # email
 MAIL = {
@@ -70,20 +69,25 @@ def get_nested_value(record):
 # Convert  excel to dataframe
 def excel_to_df(file_name, sheet_name=None, path=None):
     folder_dir = path if path else PATH['TARGET_DIR']
-    para = {'sort': False, 'dtype': str}
+    para = {'dtype': str}
     if sheet_name:
         para.update({'sheet_name': sheet_name})
-    try:
-        df = pd.read_excel(folder_dir + r'\{}.xlsx'.format(file_name), **para)
-    except:
-        logging.info('{}.xlsx does not exist, try {}.xls'.format(file_name, file_name))
-        try:
-            df = pd.read_excel(folder_dir + r'\{}.xls'.format(file_name), **para)
-            df = df.fillna(value='').replace(to_replace='^nan$', value='', regex=True)
-        except Exception:
-            logging.exception('Fail to import excel to df')
-            return None
 
+    if os.path.isfile(folder_dir + r'\{}.xlsx'.format(file_name)):
+        file_path = folder_dir + r'\{}.xlsx'.format(file_name)
+        para['engine'] = 'openpyxl'
+    elif os.path.isfile(folder_dir + r'\{}.xls'.format(file_name)):
+        file_path = folder_dir + r'\{}.xls'.format(file_name)
+    else:
+        logging.error('{} does not exist.'.format(file_name))
+
+    try:
+        df = pd.read_excel(file_path, **para)
+    except Exception:
+        logging.exception('Fail to import excel to df')
+        return None
+
+    df = df.fillna(value='').replace(to_replace='^nan$', value='', regex=True)
     return df
 
 
@@ -103,7 +107,7 @@ def df_to_excel(df, file_name, sheet_name='Results', path=None):
         logging.exception('Fail to export {} to excel.'.format(file_name))
         return None
 
-    return True
+    return file_path
 
 
 # Return dict of given df's columns' size
@@ -130,3 +134,20 @@ def get_job_name():
     name_pattern = re.compile(r'\w+\.py')
     name = re.search(name_pattern, str(module.__file__)).group(0)
     return name.replace(r'.py', '')
+
+
+# Check if geckodriver is installed, if not download one
+def get_geckodriver():
+    for p in sys.path:
+        if os.path.isfile(p + '\\Scripts\\geckodriver.exe'):
+            logging.info('geckodriver is installed.')
+            return True
+
+    logging.info('geockodrive is not installed, downloading...')
+    from webdrivermanager import GeckoDriverManager
+    gdd = GeckoDriverManager()
+    try:
+        gdd.download_and_install()
+        logging.info('geckodriver is installed.')
+    except Exception:
+        logging.exception('Not able to install geckodirver.\n')

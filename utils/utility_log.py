@@ -1,5 +1,5 @@
 import logging
-from utility_commons import PATH, get_job_name
+from utils.utility_commons import PATH, get_job_name
 
 # global log variable
 __default_logger = 'scrapy'

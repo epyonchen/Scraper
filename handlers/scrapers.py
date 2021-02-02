@@ -3,14 +3,15 @@ Created on April 18th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
-
+# -*- coding: utf-8 -*-
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import pagemanipulate as pm
-from utility_log import get_logger
-from utility_commons import get_job_name, TIME
+import handlers.pagemanipulate as pm
 from func_timeout import func_set_timeout
+from utils.utility_log import get_logger
+from utils.utility_commons import get_job_name, TIME
+
 
 logger = get_logger(__name__)
 
@@ -20,8 +21,8 @@ class Scraper:
         self.search_base = None
         # self.search_url = None
         # self.entity = entity
-        self.df = pd.DataFrame()
-        self.info = pd.DataFrame()
+        self.df = {'df': pd.DataFrame(), 'info': pd.DataFrame()}
+        # self.info = pd.DataFrame()
         self.session = requests.session()
         self.cookies = self.session.cookies
         self.switch = True
@@ -75,10 +76,10 @@ class Scraper:
     # Format dataframe into db structure
     def format_df(self):
         job_name = get_job_name()
-        if (self.df is not None) or (not self.df.empty):
-            self.df['Timestamp'] = TIME['TODAY']
-        if (self.info is not None) or (not self.info.empty):
-            self.info['Timestamp'] = TIME['TODAY']
+        if (self.df['df'] is not None) or (not self.df['df'].empty):
+            self.df['df']['Timestamp'] = TIME['TODAY']
+        if (self.df['info'] is not None) or (not self.df['info'].empty):
+            self.df['info']['Timestamp'] = TIME['TODAY']
 
         return self
 
@@ -102,7 +103,7 @@ class Scraper:
         logger.info('Total {} records, {} pages.'.format(str(len(item_info_load)), str(page - from_page)))
 
         if item_info_load:
-            self.df = self.df.append(item_info_load, ignore_index=True, sort=False)
+            self.df['df'] = self.df['df'].append(item_info_load, ignore_index=True, sort=False)
         self.format_df()
         # return one_entity, str(from_page), str(page - 1)
 
@@ -148,9 +149,9 @@ class TwoStepScraper(Scraper):
         logger.info('Total {} records, {} pages.'.format(str(len(item_detail_load)), str(page - from_page)))
 
         if item_detail_load:
-            self.df = self.df.append(item_detail_load, ignore_index=True, sort=False)
+            self.df['df'] = self.df['df'].append(item_detail_load, ignore_index=True, sort=False)
         if item_info_load:
-            self.info = self.info.append(item_info_load, ignore_index=True, sort=False)
+            self.df['info'] = self.df['info'].append(item_info_load, ignore_index=True, sort=False)
         self.format_df()
         # return one_entity, str(from_page), str(page)
 

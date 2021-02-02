@@ -9,14 +9,15 @@ Created on June 24th 2018
 import random
 import time
 import urllib
-import geocodeconvert as gc
+import pandas as pd
 from aip import AipOcr
-from default_api import default_api
-from utility_commons import get_nested_value
-from utility_log import get_logger
+from handlers.default_api import default_api
+from utils.utility_commons import get_nested_value
+from utils.utility_log import get_logger
+from utils.utility_geocode import bd09_to_wgs84
 import keys
 
-logger = get_logger('scrapy')
+logger = get_logger(__name__)
 
 
 class Baidu_map(default_api):
@@ -50,9 +51,11 @@ class Baidu_map(default_api):
     }
 
     # Convert bd to wgs
-    @staticmethod
-    def geocode_convert(lon, lat):
-        return pd.Series(gc.bd09_to_wgs84(lon, lat))
+    def geocode_convert(self, output):
+        if output:
+            output['lon'], output['lat'] = str(output['location']).split(',')
+            output['MapIT_lon'], output['MapIT_lat'] = bd09_to_wgs84(float(output['lon']), float(output['lat']))
+        return output
 
     # Validate if location in return records
     @staticmethod
@@ -76,10 +79,10 @@ class Baidu_map(default_api):
     # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Baidu_map, self).query(source_df=source_df, **kwargs)
-        if not results.empty:
-            results[['MapIT_lon', 'MapIT_lat']] = results.apply(
-                lambda x: self.geocode_convert(float(x['lng']), float(x['lat'])),
-                axis=1)
+        # if not results.empty:
+        #     results[['MapIT_lon', 'MapIT_lat']] = results.apply(
+        #         lambda x: self.geocode_convert(float(x['lng']), float(x['lat'])),
+        #         axis=1)
 
         return results
 
@@ -173,14 +176,3 @@ class Baidu_ocr(default_api):
     def renew_client_ocr(self):
         self.client = AipOcr(keys.baidu['ocr_id'], keys.baidu['ocr_ak'], keys.baidu['ocr_sk'])
         self.switch += 1
-
-
-if __name__ == '__main__':
-    from utility_commons import TARGET_DIR
-    import pandas as pd
-    df = pd.DataFrame()
-    df = df.append([{'q': '', 'from': 'cn', 'to': 'en'}], ignore_index=True)
-    print(df)
-    bm = Baidu_translate()
-    r = bm.query(df)
-    print(r)

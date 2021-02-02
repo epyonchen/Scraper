@@ -6,10 +6,11 @@ Created on Jan 24th 2019
 """
 
 import pymssql
-import pandas as pd
 import pyodbc
-from utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
-from utility_log import get_logger
+import pandas as pd
+from utils.utility_log import get_logger
+from utils.utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
+
 
 logger = get_logger(__name__)
 
@@ -109,7 +110,7 @@ class DbHandler:
             logger.error('Fail to load data into {0}'.format(table_name))
 
     # Select all
-    def select(self, table_name, column_name='*', schema=None, condition=''):
+    def select(self, table_name, column_name='*', schema=None, condition=None):
         if column_name != '*':
             columns = self._get_columns(column_name)
         else:
@@ -120,8 +121,7 @@ class DbHandler:
         table = self._get_table(table_name, schema)
 
         # Condition build up
-        if condition != '':
-            condition = 'WHERE ' + condition
+        condition = ('WHERE ' + condition) if condition is not None else ''
 
         query = "SELECT {} FROM {} {}".format(columns, table, condition)
         result = pd.read_sql(query, self.conn)
@@ -265,24 +265,28 @@ class DbHandler:
         self.delete(table_name=table_name, schema=schema, condition='[{}] IN {}'.
                     format(dedupe_col, self._get_value(dedup_df[dedupe_col], dedup_df[dedupe_col].index)))
 
-    def get_logs(self, condition='[Source] = \'{}\''.format(get_job_name()), table_name=DB['LOG_TABLE_NAME'],
-                 schema=None, entity_column='Entity'):
+    def get_logs(self, table_name=DB['LOG_TABLE_NAME'], entity_column='Entity', schema=None, condition=None):
+        # if source and (not condition):
+        #     condition = '[Source] = \'{}\''.format(source)
         history = self.select(table_name=table_name, schema=schema, condition=condition)
         if (history is None) or history.empty:
             logger.info('No historical records in logs table.')
-            return set()
+            return None
         else:
-            return set(history[entity_column].unique().tolist()) if entity_column in history.columns else set()
+            if entity_column is None:
+                return history
+            return history[entity_column].unique().tolist() if entity_column in history.columns else None
 
-    def get_to_runs(self, table_name=DB['LOG_TABLE_NAME'], schema=None, entity_column='Entity', condition=None,
-                    his_full_set=None):
+    def get_to_runs(self, table_name=DB['LOG_TABLE_NAME'], entity_column='Entity', schema=None, condition=None,
+                    source=None, his_full=None):
 
-        if his_full_set is None:
-            his_full_set = self.get_logs_history(table_name=table_name, schema=None, entity_column=entity_column)
-        existing_set = self.get_logs_history(table_name=table_name, schema=schema, condition=condition,
-                                             entity_column=entity_column)
-        if his_full_set:
-            return list(his_full_set - existing_set)
+        if his_full is None:
+            full_condition = '[Source] = \'{}\''.format(source)
+            his_full = self.get_logs(table_name=table_name, schema=None, entity_column=entity_column,
+                                     condition=full_condition)
+        existing = self.get_logs(table_name=table_name, schema=schema, condition=condition, entity_column=entity_column)
+        if his_full:
+            return list(set(his_full) - set(existing))
         else:
             logger.error('Not able to get ready-to-run entities ')
             return None
@@ -358,9 +362,6 @@ class ODBC(DbHandler):
             con_str += 'UID={0};PWD={1};'.format(config['username'], config['password'])
         return pyodbc.connect(con_str)
 
-    # TODO: add bcp upload
-    # TODO: rebuild log function
-
 
 def get_sql_list(values):
     if isinstance(values, str):
@@ -368,3 +369,5 @@ def get_sql_list(values):
 
     values = map(lambda x: 'N\'{}\''.format(x), values)
     return '({0})'.format(', '.join(values))
+
+# TODO: add bcp upload

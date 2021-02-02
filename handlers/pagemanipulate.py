@@ -13,7 +13,8 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from utility_log import get_logger
+from utils.utility_log import get_logger
+from utils.utility_commons import get_geckodriver
 
 _DEFAULT_PREFERENCE = {
     'browser.download.folderList': 2,
@@ -25,7 +26,9 @@ _DEFAULT_PREFERENCE = {
 }
 
 logger = get_logger(__name__)
-
+# Confirm geckodriver is installed
+if not get_geckodriver():
+    exit(1)
 
 class Page:
 
@@ -110,19 +113,5 @@ class Page:
         for c in webdriver_cookies:
             cookies.set(c["name"], c['value'])
         return cookies
-
-
-if __name__ == '__main__':
-    url = 'http://210.76.69.38:82/JDGG/QTCGList.aspx?CGLX=A1'
-    page = Page(url, 'normal')
-    # page.click("//div[@class='content'")
-    print(page.driver)
-    # print(page.driver.page_source)
-    # search_soup = BeautifulSoup(page.driver.page_source, 'lxml')
-    #
-    # office_list = search_soup.find('div', attrs={'class': 'chengxin'}).find_all('a')
-    # print(office_list)
-    page.close()
-
 
 
