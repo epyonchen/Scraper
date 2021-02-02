@@ -19,14 +19,15 @@ from openpyxl import load_workbook
 # sys.path.append(r'C:\Users\benson.chen\Credentials')
 
 __TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper'
+__SCRIPT_DIR = r'C:\Users\benson.chen\PycharmProjects\Scraper'
 # path
 PATH = {
-    'SCRIPT_DIR': os.path.dirname(__file__),
+    'SCRIPT_DIR': __SCRIPT_DIR,
     'TARGET_DIR': __TARGET_DIR,
     'PIC_DIR': __TARGET_DIR + r'\Vcode',
     'FILE_DIR': __TARGET_DIR + r'\Result',
     'LOG_DIR': __TARGET_DIR + r'\Log',
-    'JOB_DIR': __TARGET_DIR + r'\Job'
+    'JOB_DIR': __SCRIPT_DIR + r'\jobs'
 
 }
 
@@ -81,7 +82,6 @@ def excel_to_df(file_name, sheet_name=None, path=None):
         logging.info('{}.xlsx does not exist, try {}.xls'.format(file_name, file_name))
         try:
             df = pd.read_excel(folder_dir + r'\{}.xls'.format(file_name), **para)
-            df = df.fillna(value='').replace(to_replace='^nan$', value='', regex=True)
         except Exception:
             logging.exception('Fail to import excel to df')
             return None
