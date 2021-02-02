@@ -135,6 +135,6 @@ class Haozu(TwoStepScraper):
                     df[k] = df[k].apply(lambda x: str(x)[:255])
             return df
 
-        self.info = _limit_len(self.info)
+        self.df['info'] = _limit_len(self.df['info'])
         return self
 

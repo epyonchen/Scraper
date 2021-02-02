@@ -117,7 +117,7 @@ class Diandianzu(TwoStepScraper):
     def format_df(self):
         super().format_df()
         pattern = re.compile(r'\(VR看房\)')
-        self.df['Property'] = self.df['Property'].apply(lambda x: re.sub(pattern, '', x))
-        self.info['Name'] = self.info['Name'].apply(lambda x: re.sub(pattern, '', x))
+        self.df['df']['Property'] = self.df['df']['Property'].apply(lambda x: re.sub(pattern, '', x))
+        self.df['info']['Name'] = self.df['info']['Name'].apply(lambda x: re.sub(pattern, '', x))
 
 
