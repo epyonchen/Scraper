@@ -17,5 +17,5 @@
 
 # Ignore credential and testing files
 keys.py
-test.py
+jobs/test.py
 google_key.json

@@ -5,6 +5,7 @@ Created on Dec 7th 2020
 """
 # -*- coding: utf-8 -*-
 
+import job_libs
 import utils.utility_email as em
 from handlers.diandianzu import Diandianzu
 from handlers.db import Mssql, get_sql_list
@@ -28,8 +29,8 @@ for entity in entities_run:
     entity_object.run()
 
     with Mssql(config=keys.dbconfig_mkt) as entity_db:
-        entity_db.upload(df=entity_object.df, table_name=DB['DETAIL_TABLE'], new_id=SITE)
-        entity_db.upload(df=entity_object.info, table_name=DB['INFO_TABLE'], new_id=SITE, dedupe_col='Source_ID')
+        entity_db.upload(df=entity_object.df['df'], table_name=DB['DETAIL_TABLE'], new_id=SITE)
+        entity_db.upload(df=entity_object.df['info'], table_name=DB['INFO_TABLE'], new_id=SITE, dedupe_col='Source_ID')
         entity_db.log(Entity=entity, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(entity_object.info))
 
 scrapyemail = em.Email()

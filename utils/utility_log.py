@@ -20,13 +20,17 @@ LOG_CONFIG = {
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'precise',
             # 'encoding': 'utf-8'
         },
     },
-    'loggers': {}
+    'loggers': {
+        'root': {
+            'disabled': True
+        }
+    }
 }
 
 
@@ -60,29 +64,26 @@ def get_logger(logger_name=__default_logger, isjob=True):
 
 # Update log config, adding
 def _update_log_config(logger_name, default_logger):
-    global LOG_CONFIG
+
     hanlder_config = {
         logger_name: {
-            'level': 'DEBUG',
+            'level': 'ERROR',
             'class': 'logging.FileHandler',
             'formatter': 'precise',
             'filename': __log_file_path.format(logger_name),
             'mode': 'w',
             'encoding': 'utf-8'
-        }
+        },
     }
 
     # Root logger doesn't use console handler
     logger_config = {
         logger_name: {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'handlers': [logger_name, 'console'] if logger_name != default_logger else [logger_name],
-            'propagate': True,
+            'propagate': True if logger_name != default_logger else False
         }
     }
     global LOG_CONFIG
     LOG_CONFIG['handlers'].update(hanlder_config)
     LOG_CONFIG['loggers'].update(logger_config)
-
-
-

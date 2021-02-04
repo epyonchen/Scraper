@@ -281,7 +281,7 @@ class DbHandler:
                     source=None, his_full=None):
 
         if his_full is None:
-            full_condition = '[Source] = \'{}\''.format(source)
+            full_condition = '[Source] = \'{}\''.format(source) if source else None
             his_full = self.get_logs(table_name=table_name, schema=None, entity_column=entity_column,
                                      condition=full_condition)
         existing = self.get_logs(table_name=table_name, schema=schema, condition=condition, entity_column=entity_column)
