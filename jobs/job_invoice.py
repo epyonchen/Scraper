@@ -2,7 +2,7 @@ import job_libs
 import pandas as pd
 import utils.utility_email as em
 from handlers.db import Mssql, get_sql_list
-from handlers.pam_invoice import PAM_Invoice, invoice_send_email, logger
+from handlers.pam_invoice import PAM_Invoice, logger
 from utils.utility_commons import PATH, TIME, DB
 import keys
 
