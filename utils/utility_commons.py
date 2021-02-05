@@ -15,10 +15,9 @@ from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from openpyxl import load_workbook
 
-# sys.path.append(r'C:\Users\benson.chen\Credentials')
 
-__TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper'
-__SCRIPT_DIR = r'C:\Users\benson.chen\PycharmProjects\Scraper'
+__TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper' # os.path.abspath('..')
+__SCRIPT_DIR = os.path.abspath('..')
 # path
 PATH = {
     'SCRIPT_DIR': __SCRIPT_DIR,
