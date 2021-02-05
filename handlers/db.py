@@ -97,7 +97,8 @@ class DbHandler:
 
         # Columns cross-check
         existing_columns = list(self.select(table_name=table_name, column_name='top 0 *'))
-        insert_columns = list(set(existing_columns) & set(column_list))
+        insert_columns = list(set(map(lambda x: x.lower(), existing_columns)) &
+                              set(map(lambda x: x.lower(), column_list)))
         insert_columns = self._get_columns(insert_columns)
         insert_query = 'INSERT INTO {0} ({1}) (SELECT {2} FROM #Temp_{3})'. \
             format(table, insert_columns, insert_columns, table_name)
