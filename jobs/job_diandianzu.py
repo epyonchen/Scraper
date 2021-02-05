@@ -31,7 +31,7 @@ for entity in entities_run:
     with Mssql(config=keys.dbconfig_mkt) as entity_db:
         entity_db.upload(df=entity_object.df['df'], table_name=DB['DETAIL_TABLE'], new_id=SITE)
         entity_db.upload(df=entity_object.df['info'], table_name=DB['INFO_TABLE'], new_id=SITE, dedupe_col='Source_ID')
-        entity_db.log(Entity=entity, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(entity_object.info))
+        entity_db.log(Entity=entity, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(entity_object.df['info']))
 
 scrapyemail = em.Email()
 scrapyemail.send(subject='[Scrapy] ' + DB['DETAIL_TABLE'], content='Done', attachment=PATH['LOG_PATH'])

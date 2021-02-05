@@ -81,7 +81,6 @@ class Scraper:
         if (self.df['info'] is not None) or (not self.df['info'].empty):
             self.df['info']['Timestamp'] = TIME['TODAY']
 
-        return self
 
     @func_set_timeout(timeout=18000)
     def run(self, from_page=1, to_page=None, step=1):
