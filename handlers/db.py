@@ -287,12 +287,12 @@ class DbHandler:
                                      condition=full_condition)
         existing = self.get_logs(table_name=table_name, schema=schema, condition=condition, entity_column=entity_column)
         if his_full:
-            return list(set(his_full) - set(existing))
+            return list(set(his_full) - set(existing)) if existing else None
         else:
             logger.error('Not able to get ready-to-run entities ')
             return None
 
-    # Get habdler's connection
+    # Get handler's connection
     @staticmethod
     def _set_con(config):
         logger.error('No package.')
