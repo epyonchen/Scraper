@@ -1,12 +1,11 @@
+# -*- coding: utf-8 -*-
 """
 Created on Dec 7th 2020
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
-# -*- coding: utf-8 -*-
 
-import job_libs
-import utils.utility_email as em
+
 from handlers.diandianzu import Diandianzu
 from handlers.db import Mssql, get_sql_list
 from utils.utility_commons import TIME, PATH, DB

@@ -1,4 +1,11 @@
-import job_libs
+# -*- coding: utf-8 -*-
+"""
+Created on Dec 7th 2020
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 import pandas as pd
 import utils.utility_email as em
 from handlers.db import Mssql, get_sql_list

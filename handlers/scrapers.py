@@ -1,10 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 Created on April 18th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
-# -*- coding: utf-8 -*-
-import requests
+
 from bs4 import BeautifulSoup
 import pandas as pd
 import handlers.pagemanipulate as pm
@@ -104,7 +104,6 @@ class Scraper:
         if item_info_load:
             self.df['df'] = self.df['df'].append(item_info_load, ignore_index=True, sort=False)
         self.format_df()
-        # return one_entity, str(from_page), str(page - 1)
 
 
 class TwoStepScraper(Scraper):
@@ -152,7 +151,6 @@ class TwoStepScraper(Scraper):
         if item_info_load:
             self.df['info'] = self.df['info'].append(item_info_load, ignore_index=True, sort=False)
         self.format_df()
-        # return one_entity, str(from_page), str(page)
 
     # Get detail of one item
     def get_item_detail(self, item):

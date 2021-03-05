@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
 """
 Created on May 11th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
+
+import os
 import re
 import requests
 import os
@@ -176,7 +179,6 @@ class PAM_Invoice:
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
 
-    # @classmethod
     @func_set_timeout(timeout=3600, allowOverride=True)
     def run(self, entity, server):
         # t = cls(link, username, password)

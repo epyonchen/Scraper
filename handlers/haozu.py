@@ -4,6 +4,7 @@ Created on Dec 21st 2018
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
+
 import random
 import time
 import re

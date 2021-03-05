@@ -1,23 +1,26 @@
+# -*- coding: utf-8 -*-
 """
 Created on Thur May 16th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-import os
-import sys
-import re
+
 import datetime
 import pandas as pd
 import logging
 import logging.config
-from dateutil.relativedelta import relativedelta
-from pytz import timezone
 from openpyxl import load_workbook
+import os
+import pandas as pd
+from pytz import timezone
+import re
+import sys
 
 
 __TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper' # os.path.abspath('..')
 __SCRIPT_DIR = os.path.abspath('..')
+
 # path
 PATH = {
     'SCRIPT_DIR': __SCRIPT_DIR,
