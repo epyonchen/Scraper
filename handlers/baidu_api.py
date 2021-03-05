@@ -6,16 +6,15 @@ Created on June 24th 2018
 """
 
 
+from aip import AipOcr
 import random
 import time
 import urllib
-import pandas as pd
-from aip import AipOcr
+from handlers import keys
 from handlers.default_api import default_api
-from utils.utility_commons import get_nested_value
-from utils.utility_log import get_logger
+from utils import get_logger, get_nested_value
 from utils.utility_geocode import bd09_to_wgs84
-import keys
+
 
 logger = get_logger(__name__)
 
@@ -79,10 +78,6 @@ class Baidu_map(default_api):
     # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Baidu_map, self).query(source_df=source_df, **kwargs)
-        # if not results.empty:
-        #     results[['MapIT_lon', 'MapIT_lat']] = results.apply(
-        #         lambda x: self.geocode_convert(float(x['lng']), float(x['lat'])),
-        #         axis=1)
 
         return results
 

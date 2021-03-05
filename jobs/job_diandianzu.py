@@ -7,9 +7,10 @@ Created on Dec 7th 2020
 
 
 from handlers.diandianzu import Diandianzu
-from handlers.db import Mssql, get_sql_list
-from utils.utility_commons import TIME, PATH, DB
-import keys
+from handlers.db import ODBC, get_sql_list
+from jobs import keys
+from utils import TIME, PATH, DB, Email
+
 
 SITE = 'diandianzu'
 DB['DETAIL_TABLE'] = 'Scrapy_' + SITE
@@ -32,7 +33,7 @@ for entity in entities_run:
         entity_db.upload(df=entity_object.df['info'], table_name=DB['INFO_TABLE'], new_id=SITE, dedupe_col='Source_ID')
         entity_db.log(Entity=entity, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(entity_object.df['info']))
 
-scrapyemail = em.Email()
+scrapyemail = Email()
 scrapyemail.send(subject='[Scrapy] ' + DB['DETAIL_TABLE'], content='Done', attachment=PATH['LOG_PATH'])
 scrapyemail.close()
 exit(0)

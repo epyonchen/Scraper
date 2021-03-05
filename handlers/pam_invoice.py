@@ -9,20 +9,15 @@ Created on May 11th 2019
 import os
 import re
 import requests
-import os
-import handlers.pagemanipulate as pm
-import utils.utility_email as em
 from func_timeout import func_set_timeout
 from func_timeout.exceptions import FunctionTimedOut
 from PIL import Image
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from handlers.pagemanipulate import Page
 from handlers.baidu_api import Baidu_ocr
-from utils.utility_log import get_logger
-from utils.utility_commons import PATH, TIME, excel_to_df, df_to_excel
-
-
+from utils import get_logger, excel_to_df, df_to_excel, PATH, TIME, Email
 
 
 logger = get_logger(__name__)
@@ -36,7 +31,7 @@ class PAM_Invoice:
         self.base = link
         self.username = username
         self.password = password
-        self.web = pm.Page(self.base, 'normal')
+        self.web = Page(self.base, 'normal')
         self.web.driver.implicitly_wait(10)
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
@@ -124,7 +119,7 @@ class PAM_Invoice:
                 else:
                     try:
                         element = WebDriverWait(self.web.driver, 10).until(
-                            EC.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td[1]'))
+                            ec.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td[1]'))
                         )
                     finally:
                         logger.info('Sucessfully login.')

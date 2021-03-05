@@ -6,11 +6,12 @@ Created on April 24th 2020
 """
 
 
-import requests
 import hashlib
+import requests
 import pandas as pd
 from urllib import parse
-from utils.utility_log import get_logger
+from utils import get_logger
+
 
 logger = get_logger(__name__)
 

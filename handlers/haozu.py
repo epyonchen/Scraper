@@ -8,12 +8,9 @@ Created on Dec 21st 2018
 import random
 import time
 import re
-import utils.utility_email as em
-from handlers.db import Mssql, get_sql_list
 from handlers.scrapers import TwoStepScraper
-from utils.utility_log import get_logger
-from utils.utility_commons import PATH, TIME, DB, get_job_name
-import keys
+from utils import get_logger
+
 
 logger = get_logger(__name__)
 

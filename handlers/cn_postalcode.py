@@ -7,11 +7,12 @@ Created on Nov 9th 2020
 
 
 import random
+import re
 import time
 import pandas as pd
 from handlers.scrapers import TwoStepScraper
-from utils.utility_log import get_logger
-from utils.utility_commons import excel_to_df, df_to_excel
+from utils import get_logger, excel_to_df, df_to_excel
+
 
 logger = get_logger(__name__)
 

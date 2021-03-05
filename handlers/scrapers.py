@@ -6,11 +6,11 @@ Created on April 18th 2019
 """
 
 from bs4 import BeautifulSoup
-import pandas as pd
-import handlers.pagemanipulate as pm
 from func_timeout import func_set_timeout
-from utils.utility_log import get_logger
-from utils.utility_commons import get_job_name, TIME
+import pandas as pd
+import requests
+import handlers.pagemanipulate as pm
+from utils import get_logger, TIME
 
 
 logger = get_logger(__name__)
@@ -75,12 +75,10 @@ class Scraper:
 
     # Format dataframe into db structure
     def format_df(self):
-        job_name = get_job_name()
         if (self.df['df'] is not None) or (not self.df['df'].empty):
             self.df['df']['Timestamp'] = TIME['TODAY']
         if (self.df['info'] is not None) or (not self.df['info'].empty):
             self.df['info']['Timestamp'] = TIME['TODAY']
-
 
     @func_set_timeout(timeout=18000)
     def run(self, from_page=1, to_page=None, step=1):

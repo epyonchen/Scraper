@@ -5,11 +5,12 @@ Created on Jan 24th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-import pymssql
+
+# import pymssql
 import pyodbc
 import pandas as pd
-from utils.utility_log import get_logger
-from utils.utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
+from utils import get_logger, DB
+from utils.utility_commons import get_df_col_size, chunksize_df_col_size, get_job_name
 
 
 logger = get_logger(__name__)

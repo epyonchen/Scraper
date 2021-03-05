@@ -4,13 +4,13 @@ Created on Jan 9th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
-# -*- coding: utf-8 -*-
+
 
 import random
-import time
 import re
-from utils.utility_log import get_logger
+import time
 from handlers.scrapers import TwoStepScraper
+from utils import get_logger
 
 
 logger = get_logger(__name__)

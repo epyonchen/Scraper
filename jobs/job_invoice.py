@@ -7,11 +7,10 @@ Created on Dec 7th 2020
 
 
 import pandas as pd
-import utils.utility_email as em
-from handlers.db import Mssql, get_sql_list
-from handlers.pam_invoice import PAM_Invoice, logger
-from utils.utility_commons import PATH, TIME, DB
-import keys
+from handlers.db import ODBC, get_sql_list
+from handlers.pam_invoice import PAM_Invoice, logger, invoice_send_email
+from jobs import keys
+from utils import PATH, TIME, DB, Email
 
 
 PATH['SITE'] = 'irregular_tax'
@@ -21,7 +20,6 @@ PATH['TAX_DETAIL_FILE'] = 'Irregular_Tax'
 PATH['TAX_FILE'] = 'Irregular_Tax_Summary'
 PATH['ATTACHMENT_FILE'] = '{0}_异常发票清单_{1}'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + PATH['SITE'] + '.log'
-
 
 DB['TAX_DETAIL_TABLE'] = 'Scrapy_' + PATH['SITE']
 DB['TAX_INFO_TABLE'] = 'Scrapy_' + PATH['SITE'] + '_Summary'
@@ -71,10 +69,10 @@ with Mssql(keys.dbconfig) as execute_db:
         if att is not False:
             att[numeric_col] = att[numeric_col].apply(pd.to_numeric)
 
-        # invoice_send_email(entity=row['Entity_Name'], receiver=row['Email_List'], attachment=att)
+        invoice_send_email(entity=row['Entity_Name'], receiver=row['Email_List'], attachment=att)
 
 # Send email summary
-scrapyemail_summary = em.Email()
+scrapyemail_summary = Email()
 scrapyemail_summary.send('[Scrapy]' + PATH['SITE'], 'Done', PATH['LOG_PATH'],
                          receivers='benson.chen@ap.jll.com;helen.hu@ap.jll.com')
 scrapyemail_summary.close()
