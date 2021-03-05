@@ -17,18 +17,16 @@ DB['DETAIL_TABLE'] = 'Scrapy_' + SITE
 DB['INFO_TABLE'] = 'Scrapy_' + SITE + '_Info'
 PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + SITE + '.log'
 
-with Mssql(config=keys.dbconfig_mkt) as exist_db:
-    condition_full = '[Source] = {0}'.format(get_sql_list(SITE))
-    condition_done = '[Timestamp] >= {0} AND '.format(get_sql_list(TIME['TODAY'])) + condition_full
-    entities_full = exist_db.get_logs(table_name=DB['LOG_TABLE_NAME'], condition=condition_full)
-    entities_done = exist_db.get_logs(table_name=DB['LOG_TABLE_NAME'], condition=condition_done)
-    entities_run = list(set(entities_full) - set(entities_done if entities_done else []))
+
+with ODBC(config=keys.dbconfig_mkt) as exist_db:
+    condition_done = '[Timestamp] >= {0} AND [Source] = {1}'.format(get_sql_list(TIME['TODAY']), get_sql_list(SITE))
+    entities_run = exist_db.get_to_runs(table_name=DB['LOG_TABLE_NAME'], condition=condition_done, source=SITE)
 
 for entity in entities_run:
     entity_object = Diandianzu(entity)
     entity_object.run()
 
-    with Mssql(config=keys.dbconfig_mkt) as entity_db:
+    with ODBC(config=keys.dbconfig_mkt) as entity_db:
         entity_db.upload(df=entity_object.df['df'], table_name=DB['DETAIL_TABLE'], new_id=SITE)
         entity_db.upload(df=entity_object.df['info'], table_name=DB['INFO_TABLE'], new_id=SITE, dedupe_col='Source_ID')
         entity_db.log(Entity=entity, Timestamp=TIME['TODAY'], Source=SITE, start=1, end=len(entity_object.df['info']))

@@ -7,7 +7,6 @@ Created on Dec 7th 2020
 
 
 from handlers.amap_api import Amap
-from handlers.baidu_api import Baidu_translate, Baidu_map
 from utils.utility_commons import excel_to_df, df_to_excel
 
 

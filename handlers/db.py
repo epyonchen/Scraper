@@ -185,7 +185,7 @@ class DbHandler:
                 col_names = [i[0] for i in self.cur.description]
                 att = []
                 for row in self.cur:
-                    att.append(row)
+                    att.append(list(row))
                 self.conn.commit()
                 att = pd.DataFrame(att, columns=col_names)
                 return att
@@ -342,15 +342,15 @@ class DbHandler:
         return row_value
 
 
-class Mssql(DbHandler):
-
-    @staticmethod
-    def _set_con(config):
-        if ('username' in config.keys()) and ('password' in config.keys()):
-            return pymssql.connect(server=config['server'], database=config['database'], user=config['username'],
-                                   password=config['password'])
-        else:
-            return pymssql.connect(server=config['server'], database=config['database'])
+# class Mssql(DbHandler):
+#
+#     @staticmethod
+#     def _set_con(config):
+#         if ('username' in config.keys()) and ('password' in config.keys()):
+#             return pymssql.connect(server=config['server'], database=config['database'], user=config['username'],
+#                                    password=config['password'])
+#         else:
+#             return pymssql.connect(server=config['server'], database=config['database'])
 
 
 class ODBC(DbHandler):
