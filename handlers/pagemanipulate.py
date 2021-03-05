@@ -27,9 +27,9 @@ _DEFAULT_PREFERENCE = {
     'browser.helperApps.neverAsk.saveToDisk': 'text/csv/xls/xlsx'
 }
 
-logger = get_logger(__name__)
 # Confirm geckodriver is installed
 if not get_geckodriver():
+    logger.error('Geckodriver is not installed.')
     exit(1)
 
 
@@ -102,8 +102,8 @@ class Page:
         self.driver.get(url)
 
     def close(self):
+        self.driver.quit()
         logger.info('Close browser.')
-        self.driver.close()
 
     def get_requests_cookies(self):
         import requests
