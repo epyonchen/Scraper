@@ -1,7 +1,14 @@
-import pandas as pd
+# -*- coding: utf-8 -*-
+"""
+Created on Dec 7th 2020
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 from handlers.amap_api import Amap
-from handlers.baidu_api import Baidu_translate, Baidu_map
 from utils.utility_commons import excel_to_df, df_to_excel
+
 
 amap = Amap('text')
 # input_df = pd.DataFrame()

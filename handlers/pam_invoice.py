@@ -1,29 +1,67 @@
+# -*- coding: utf-8 -*-
 """
 Created on May 11th 2019
 
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
+
+import os
 import re
 import requests
-import os
-import handlers.pagemanipulate as pm
-import utils.utility_email as em
 from func_timeout import func_set_timeout
 from func_timeout.exceptions import FunctionTimedOut
 from PIL import Image
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from handlers.pagemanipulate import Page
 from handlers.baidu_api import Baidu_ocr
-from utils.utility_log import get_logger
-from utils.utility_commons import PATH, TIME, excel_to_df, df_to_excel
-
-
+from utils import get_logger, excel_to_df, df_to_excel, PATH, TIME, Email
 
 
 logger = get_logger(__name__)
 count = 0
+
+
+# Check if file from previous exists, and delete it
+def check_last_query(path):
+    if os.path.isfile(path):
+        logger.info('Delete previous {}.'.format(path))
+        os.remove(path)
+
+
+# Validation code is valid with 4 letters and probability > 0.7
+def vcode_validate(result, threshold=0.7):
+    if not result:
+        return None
+    vcode = result['words_result'][0]['words'].replace(' ', '')
+    prop = result['words_result'][0]['probability']['average']
+    vcode = ''.join(re.findall(re.compile('[A-Za-z0-9]+'), vcode))
+    if (len(vcode) == 4) and prop > threshold:
+        return vcode
+    else:
+        return None
+
+
+def invoice_send_email(entity, receiver, attachment):
+    # Send email
+    scrapymail = Email()
+
+    if (attachment is None) or attachment.empty:
+        subject = '[PAM Tax Checking] - {0} 发票无异常 {1}'.format(TIME['TODAY'], entity)
+        content = 'Hi All,\r\n\r\n{}的发票无异常记录。\r\n\r\nThanks.'.format(entity)
+        scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
+    else:
+        subject = '[PAM Tax Checking] - {0} 发票异常清单 {1}'.format(TIME['TODAY'], entity)
+        content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
+        entity_path = df_to_excel(df=attachment, path=PATH['FILE_DIR'],
+                                  file_name=PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity), sheet_name=entity)
+        scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=entity_path)
+        logger.info('Delete attachment file.')
+        os.remove(entity_path)
+
+    scrapymail.close()
 
 
 class PAM_Invoice:
@@ -33,7 +71,7 @@ class PAM_Invoice:
         self.base = link
         self.username = username
         self.password = password
-        self.web = pm.Page(self.base, 'normal')
+        self.web = Page(self.base, 'normal')
         self.web.driver.implicitly_wait(10)
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
@@ -46,23 +84,11 @@ class PAM_Invoice:
             pic = self.web.driver.find_element_by_xpath('//*[@id="crcpic"]')
         except Exception:
             logger.exception('Unable to get validation code pic.')
-            return False
+            return None
         vcode_pic = Image.open(PATH['SCREENSHOT_PATH'])
         vcode_pic = vcode_pic.crop((pic.location['x'], pic.location['y'], pic.location['x'] + pic.size['width'],
                                     pic.location['y'] + pic.size['height']))
         return vcode_pic
-
-    # Validation code is valid with 4 letters and probability > 0.7
-    def vcode_validate(self, result, threshold=0.7):
-        if not result:
-            return None
-        vcode = result['words_result'][0]['words'].replace(' ', '')
-        prop = result['words_result'][0]['probability']['average']
-        vcode = ''.join(re.findall(re.compile('[A-Za-z0-9]+'), vcode))
-        if (len(vcode) == 4) and prop > threshold:
-            return vcode
-        else:
-            return False
 
     # Not return validation code until get valid one
     def get_vcode(self):
@@ -83,7 +109,7 @@ class PAM_Invoice:
                     continue
                 elif (not ocr_result) and (ocr.switch >= 4):
                     exit(1)
-                vcode = self.vcode_validate(ocr_result)
+                vcode = vcode_validate(ocr_result)
                 if vcode:
                     logger.info('Get validation code "{}". Try to login.'.format(vcode))
                     return vcode
@@ -95,7 +121,7 @@ class PAM_Invoice:
                         logger.exception('Unable to refresh validation code pic.')
                         return None
             else:
-                return False
+                return None
 
     # Login
     @func_set_timeout(timeout=3600, allowOverride=True)
@@ -121,7 +147,7 @@ class PAM_Invoice:
                 else:
                     try:
                         element = WebDriverWait(self.web.driver, 10).until(
-                            EC.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td[1]'))
+                            ec.presence_of_element_located((By.XPATH, '/html/body/table/tbody/tr/td[1]'))
                         )
                     finally:
                         logger.info('Sucessfully login.')
@@ -146,7 +172,7 @@ class PAM_Invoice:
     # Delete previous query file and download a new one
     def download_file(self, query, file_name, file_dir=PATH['FILE_DIR']):
         file_path = file_dir + r'\{}.xls'.format(file_name)
-        self.check_last_query(file_path)
+        check_last_query(file_path)
         try:
             self.update_cookies()
             response = self.session.get(query)
@@ -156,13 +182,7 @@ class PAM_Invoice:
             return True
         except Exception:
             logger.exception('Fail to download file {}'.format(file_path))
-            return False
-
-    # Check if file from previous exists, and delete it
-    def check_last_query(self, path):
-        if os.path.isfile(path):
-            logger.info('Delete previous {}.'.format(path))
-            os.remove(path)
+            return None
 
     def update_cookies(self):
         self.cookies = self.web.get_requests_cookies()
@@ -176,7 +196,6 @@ class PAM_Invoice:
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
 
-    # @classmethod
     @func_set_timeout(timeout=3600, allowOverride=True)
     def run(self, entity, server):
         # t = cls(link, username, password)
@@ -213,24 +232,3 @@ class PAM_Invoice:
         detail_df['timestamp'] = TIME['TIMESTAMP']
 
         return df, detail_df
-
-
-def invoice_send_email(entity, receiver, attachment):
-    # Send email
-    scrapymail = em.Email()
-
-    if (attachment is None) or attachment.empty:
-        subject = '[PAM Tax Checking] - {0} 发票无异常 {1}'.format(TIME['TODAY'], entity)
-        content = 'Hi All,\r\n\r\n{}的发票无异常记录。\r\n\r\nThanks.'.format(entity)
-        scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=None)
-    else:
-        subject = '[PAM Tax Checking] - {0} 发票异常清单 {1}'.format(TIME['TODAY'], entity)
-        content = 'Hi All,\r\n\r\n请查看附件关于{}的发票异常记录。\r\n\r\nThanks.'.format(entity)
-        entity_path = df_to_excel(df=attachment, path=PATH['FILE_DIR'],
-                    file_name=PATH['ATTACHMENT_FILE'].format(TIME['TODAY'], entity), sheet_name=entity)
-        scrapymail.send(subject=subject, content=content, receivers=receiver, attachment=entity_path)
-        logger.info('Delete attachment file.')
-        os.remove(entity_path)
-
-    scrapymail.close()
-

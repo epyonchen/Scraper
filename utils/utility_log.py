@@ -1,11 +1,21 @@
+# -*- coding: utf-8 -*-
+"""
+Created on June 24th 2019
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 import logging
 from utils.utility_commons import PATH, get_job_name
+
 
 # global log variable
 __default_logger = 'scrapy'
 __log_map = dict()
 __log_file_path = PATH['LOG_DIR'] + r'\{}.log'
 __handlers = {}
+
 # Logging config
 LOG_CONFIG = {
     'version': 1,  # required

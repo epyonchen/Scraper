@@ -5,11 +5,12 @@ Created on Jan 24th 2019
 @author: Benson.Chen benson.chen@ap.jll.com
 """
 
-import pymssql
+
+# import pymssql
 import pyodbc
 import pandas as pd
-from utils.utility_log import get_logger
-from utils.utility_commons import DB, get_df_col_size, chunksize_df_col_size, get_job_name
+from utils import get_logger, DB
+from utils.utility_commons import get_df_col_size, chunksize_df_col_size, get_job_name
 
 
 logger = get_logger(__name__)
@@ -184,7 +185,7 @@ class DbHandler:
                 col_names = [i[0] for i in self.cur.description]
                 att = []
                 for row in self.cur:
-                    att.append(row)
+                    att.append(list(row))
                 self.conn.commit()
                 att = pd.DataFrame(att, columns=col_names)
                 return att
@@ -287,12 +288,12 @@ class DbHandler:
                                      condition=full_condition)
         existing = self.get_logs(table_name=table_name, schema=schema, condition=condition, entity_column=entity_column)
         if his_full:
-            return list(set(his_full) - set(existing))
+            return list(set(his_full) - set(existing)) if existing else his_full
         else:
             logger.error('Not able to get ready-to-run entities ')
             return None
 
-    # Get habdler's connection
+    # Get handler's connection
     @staticmethod
     def _set_con(config):
         logger.error('No package.')
@@ -341,15 +342,15 @@ class DbHandler:
         return row_value
 
 
-class Mssql(DbHandler):
-
-    @staticmethod
-    def _set_con(config):
-        if ('username' in config.keys()) and ('password' in config.keys()):
-            return pymssql.connect(server=config['server'], database=config['database'], user=config['username'],
-                                   password=config['password'])
-        else:
-            return pymssql.connect(server=config['server'], database=config['database'])
+# class Mssql(DbHandler):
+#
+#     @staticmethod
+#     def _set_con(config):
+#         if ('username' in config.keys()) and ('password' in config.keys()):
+#             return pymssql.connect(server=config['server'], database=config['database'], user=config['username'],
+#                                    password=config['password'])
+#         else:
+#             return pymssql.connect(server=config['server'], database=config['database'])
 
 
 class ODBC(DbHandler):

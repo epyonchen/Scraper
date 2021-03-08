@@ -1,10 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Nov 9th 2020
+
+@author: Benson.Chen benson.chen@ap.jll.com
+"""
+
+
 import random
-import time
 import re
+import time
 import pandas as pd
 from handlers.scrapers import TwoStepScraper
-from utils.utility_log import get_logger
-from utils.utility_commons import excel_to_df, df_to_excel
+from utils import get_logger, excel_to_df, df_to_excel
+
 
 logger = get_logger(__name__)
 
@@ -69,6 +77,7 @@ class CN_pc(TwoStepScraper):
 
         return item_detail_list
 
+
 class CN_pc2(TwoStepScraper):
     def __init__(self):
         super().__init__()
@@ -113,8 +122,9 @@ class CN_pc2(TwoStepScraper):
             except Exception:
                 logger.exception('Fail to get district list')
                 return None
+
         target_state = re.compile('/post/hainan/|/post/guangdong/|/post/gansu/|/post/henan/')
-        target_city = re.compile('sanya/') #('jiayuguan/|zhongshan/|dongwan/|jiyuan/')
+        target_city = re.compile('sanya/')  # ('jiayuguan/|zhongshan/|dongwan/|jiyuan/')
         city_pattern = re.compile(r'\w+/')
         if re.match(target_state, pre_item['href']):
             self.sp_city = pre_item['href']
@@ -174,7 +184,6 @@ if __name__ == '__main__':
     # df_group = pc.df.groupby(['state', 'city', 'district', '邮政编码'])['地址'].apply(list).reset_index()
     # df_to_excel(df_group, file_name='pc2')
 
-    import ast
     # pc = excel_to_df(file_name='pc', sheet_name='Results2')
     # pc2 = pc.head(3)
     # pc2['地址'] = pc2['地址'].apply(ast.literal_eval)
@@ -208,4 +217,4 @@ if __name__ == '__main__':
     df_to_excel(df=pc_sum, file_name='postal_code', sheet_name='postal_codes_summary')
     fullset = di.merge(pc_sum, left_on=['pname', 'fullname'], right_on=['pname', 'fullname'], how='outer')
 
-    df_to_excel(fullset,file_name='postal_code', sheet_name='division_postal_code')
+    df_to_excel(fullset, file_name='postal_code', sheet_name='division_postal_code')

@@ -7,14 +7,16 @@ Created on June 24th 2018
 
 
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait
 from utils.utility_log import get_logger
 from utils.utility_commons import get_geckodriver
+
+
+logger = get_logger(__name__)
 
 _DEFAULT_PREFERENCE = {
     'browser.download.folderList': 2,
@@ -25,10 +27,11 @@ _DEFAULT_PREFERENCE = {
     'browser.helperApps.neverAsk.saveToDisk': 'text/csv/xls/xlsx'
 }
 
-logger = get_logger(__name__)
 # Confirm geckodriver is installed
 if not get_geckodriver():
+    logger.error('Geckodriver is not installed.')
     exit(1)
+
 
 class Page:
 
@@ -43,7 +46,6 @@ class Page:
         if exc_type:
             logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         self.close()
-        # logger.info('Close browser.')
 
     def exist(self, path):
         try:
@@ -66,15 +68,13 @@ class Page:
         while True:
             try:
                 wait = WebDriverWait(self.driver, 10)
-                wait.until(EC.element_to_be_clickable((By.XPATH, path)))
+                wait.until(ec.element_to_be_clickable((By.XPATH, path)))
                 self.driver.find_element_by_xpath(path).click()
                 self.soup = self.driver.page_source
-                # print(self.soup)
                 return self.driver.page_source
             except TimeoutException:
                 self.renew(self.base)
                 logger.exception('Timeout')
-                # return False
 
     def send(self, path, value):
         try:
@@ -102,8 +102,8 @@ class Page:
         self.driver.get(url)
 
     def close(self):
+        self.driver.quit()
         logger.info('Close browser.')
-        self.driver.close()
 
     def get_requests_cookies(self):
         import requests
@@ -113,5 +113,3 @@ class Page:
         for c in webdriver_cookies:
             cookies.set(c["name"], c['value'])
         return cookies
-
-

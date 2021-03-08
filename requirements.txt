@@ -5,7 +5,6 @@ lxml
 Pillow~=8.1.0
 baidu-aip
 pyodbc~=4.0.30
-pymssql~=2.1.5
 webdrivermanager
 selenium~=3.141.0
 urllib3
