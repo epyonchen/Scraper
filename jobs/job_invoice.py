@@ -10,7 +10,7 @@ import pandas as pd
 from handlers.db import ODBC, get_sql_list
 from handlers.pam_invoice import PAM_Invoice, logger, invoice_send_email
 from jobs import keys
-from utils import PATH, TIME, DB, Email
+from utils import PATH, TIME, DB, Email, get_job_name
 
 
 PATH['SITE'] = 'irregular_tax'
@@ -19,7 +19,7 @@ PATH['VCODE_PATH'] = PATH['PIC_DIR'] + r'\vcode.png'
 PATH['TAX_DETAIL_FILE'] = 'Irregular_Tax'
 PATH['TAX_FILE'] = 'Irregular_Tax_Summary'
 PATH['ATTACHMENT_FILE'] = '{0}_异常发票清单_{1}'
-PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + PATH['SITE'] + '.log'
+PATH['LOG_PATH'] = PATH['LOG_DIR'] + '\\' + get_job_name() + '.log'
 
 DB['TAX_DETAIL_TABLE'] = 'Scrapy_' + PATH['SITE']
 DB['TAX_INFO_TABLE'] = 'Scrapy_' + PATH['SITE'] + '_Summary'
