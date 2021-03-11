@@ -358,7 +358,7 @@ class ODBC(DbHandler):
     @staticmethod
     def _set_con(config):
         driver = config['driver'] if 'driver' in config.keys() else 'SQL Server Native Client 11.0'
-        con_str = 'DRIVER={0};SERVER={1};DATABASE={2};Trusted_Connection=yes;'. \
+        con_str = 'DRIVER={0};SERVER={1};DATABASE={2};'. \
             format(driver, config['server'], config['database'])
         if ('username' in config.keys()) and ('password' in config.keys()):
             con_str += 'UID={0};PWD={1};'.format(config['username'], config['password'])
