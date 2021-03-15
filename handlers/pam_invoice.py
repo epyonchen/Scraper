@@ -196,9 +196,8 @@ class PAM_Invoice:
         self.session = requests.session()
         self.cookies = requests.cookies.RequestsCookieJar()
 
-    @func_set_timeout(timeout=3600, allowOverride=True)
+    # Execution of pam invoice login, extraction and upload
     def run(self, entity, server):
-        # t = cls(link, username, password)
 
         while True:
             # Exit with error when login takes too much time
