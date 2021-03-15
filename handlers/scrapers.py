@@ -80,7 +80,7 @@ class Scraper:
         if (self.df['info'] is not None) or (not self.df['info'].empty):
             self.df['info']['Timestamp'] = TIME['TODAY']
 
-    @func_set_timeout(timeout=18000)
+    @func_set_timeout(timeout=18000, allowOverride=True)
     def run(self, from_page=1, to_page=None, step=1):
         page = from_page
         item_info_load = []
@@ -107,7 +107,6 @@ class Scraper:
 class TwoStepScraper(Scraper):
 
     # Query one entity
-    @func_set_timeout(timeout=18000)
     def run(self, from_page=1, to_page=None, step=1):
         page = from_page
         item_info_load = []

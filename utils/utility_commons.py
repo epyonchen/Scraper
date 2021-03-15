@@ -18,8 +18,8 @@ import re
 import sys
 
 
-__TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper' # os.path.abspath('..')
-__SCRIPT_DIR = os.path.abspath('..')
+__TARGET_DIR = r'C:\Users\benson.chen\Desktop\Scraper' # os.path.abspath(os.path.dirname(__file__) + os.path.sep + "..")
+__SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__) + os.path.sep + "..")
 
 # path
 PATH = {
