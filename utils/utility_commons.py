@@ -157,6 +157,6 @@ def get_geckodriver():
 
 def renew_timestamp():
     global __NOW
-    __NOW = str(datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong')))
+    __NOW = datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong'))
     TIME['TIMESTAMP'] = str(__NOW)
     TIME['TODAY'] = __NOW.strftime('%Y-%m-%d')
