@@ -153,3 +153,10 @@ def get_geckodriver():
         logging.info('geckodriver is installed.')
     except Exception:
         logging.exception('Not able to install geckodirver.\n')
+
+
+def renew_timestamp():
+    global __NOW
+    __NOW = str(datetime.datetime.now(timezone('UTC')).astimezone(timezone('Asia/Hong_Kong')))
+    TIME['TIMESTAMP'] = str(__NOW)
+    TIME['TODAY'] = __NOW.strftime('%Y-%m-%d')
