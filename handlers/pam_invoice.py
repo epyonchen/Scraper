@@ -17,7 +17,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 from handlers.pagemanipulate import Page
 from handlers.baidu_api import Baidu_ocr
-from utils import get_logger, excel_to_df, df_to_excel, PATH, TIME, Email
+from utils import get_logger, excel_to_df, df_to_excel, renew_timestamp, PATH, TIME, Email
 
 
 logger = get_logger(__name__)
@@ -114,7 +114,6 @@ class PAM_Invoice:
                     logger.info('Get validation code "{}". Try to login.'.format(vcode))
                     return vcode
                 else:
-                    # logger.info('Cannot recognize validation code, try again.')
                     try:
                         self.web.driver.find_element_by_xpath('//*[@id="crcpic"]').click()
                     except Exception:
@@ -124,7 +123,7 @@ class PAM_Invoice:
                 return None
 
     # Login
-    @func_set_timeout(timeout=3600, allowOverride=True)
+    @func_set_timeout(timeout=36000, allowOverride=True)
     def login(self):
         while True:
 
@@ -198,7 +197,7 @@ class PAM_Invoice:
 
     # Execution of pam invoice login, extraction and upload
     def run(self, entity, server):
-
+        renew_timestamp()
         while True:
             # Exit with error when login takes too much time
             try:
@@ -208,7 +207,6 @@ class PAM_Invoice:
                 exit(1)
             except Exception as e:
                 logger.exception(e)
-            # self.login()
 
             success = self.get()
             if success:

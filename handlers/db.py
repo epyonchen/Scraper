@@ -76,6 +76,7 @@ class DbHandler:
 
         if not self.exist('#Temp_{}'.format(table_name)):
             self.create_table(table_name='#Temp_{}'.format(table_name), column_name=column_dict, schema=False)
+
         # Built insert query
         for index, row in self.df.iterrows():
             values.append(self._get_value(df_row=row, columns_order=column_list, new_id=new_id))
@@ -268,8 +269,6 @@ class DbHandler:
                     format(dedupe_col, self._get_value(dedup_df[dedupe_col], dedup_df[dedupe_col].index)))
 
     def get_logs(self, table_name=DB['LOG_TABLE_NAME'], entity_column='Entity', schema=None, condition=None):
-        # if source and (not condition):
-        #     condition = '[Source] = \'{}\''.format(source)
         history = self.select(table_name=table_name, schema=schema, condition=condition)
         if (history is None) or history.empty:
             logger.info('No historical records in logs table.')
@@ -358,8 +357,7 @@ class ODBC(DbHandler):
     @staticmethod
     def _set_con(config):
         driver = config['driver'] if 'driver' in config.keys() else 'SQL Server Native Client 11.0'
-        con_str = 'DRIVER={0};SERVER={1};DATABASE={2};'. \
-            format(driver, config['server'], config['database'])
+        con_str = 'DRIVER={0};SERVER={1};DATABASE={2};'.format(driver, config['server'], config['database'])
         if ('username' in config.keys()) and ('password' in config.keys()):
             con_str += 'UID={0};PWD={1};'.format(config['username'], config['password'])
         return pyodbc.connect(con_str)
