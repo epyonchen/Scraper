@@ -32,5 +32,26 @@ Web Scraper package, fork from https://github.com/epyonchen/Scraper
         - _alter_kwargs: alternative parameter name of universal parameters in different platforms in pre-built query, including sign(secrect key), keyword(query keyword), page, lat, lon. key-value pairs as 'pre-built name in this module': 'actual name in targeted api platform'
         - update_parameters(): update parameters which ar
       - baidu_api, amap_api: inheritance of default_api, implement or overwrite functions and default class parameters accrodingly
+        - class Amap, Baidu_map: geographic information api
+        - _get_sign(): get secrect key and append to api query str
+        - geocode_convert(): convert geocode to wgs84(MapIT format)
+        - query(): send query to api
+        - validate_response(): check if response is valid
+        - class Baidu_translate: baidu translation api
+        - class Baidu_ocr: baidu ocr, image recognition, used in pam invoice checking
+        - ocr_image_process: normalize image
+        - ocr_api_call: send image to api and get response
+        - renew_client_ocr: renew api session to avoid limiation of query numbers
+      - pam_invoice: extract irregular invoice from webpage and notify users
+        - check_last_query(): check if file exists from previous query, if exists, delete it
+        - invoice_send_email(): send email to notify PAM user if irregular invoice exists with attachment
+        - vcode_validate(): check if validation code is valid
+        - class pam_invoice
+        - get_vcode(): send validation code image to baidu ocr api, until getting a valid validation code
+        - get_vcode_pic(): download validation code image and trim to appropriate size
+        - login(): login invoice webpage
+        - get(): get invoice list
+        - download_file(): download invoice list as xls file
+        - run(): 
 
   ### Tables and views
