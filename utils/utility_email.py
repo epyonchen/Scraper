@@ -38,7 +38,8 @@ class Email:
             logger.error('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         self.close()
 
-    def send(self, subject, content, attachment=None, sender='TDIM.China@ap.jll.com', receivers='benson.chen@ap.jll.com'):
+    def send(self, subject, content, sender='TDIM.China@ap.jll.com', receivers='benson.chen@ap.jll.com',
+             attachment=None):
         if isinstance(receivers, list):
             receivers_list = receivers
             receivers = '; '.join(receivers)
@@ -52,15 +53,16 @@ class Email:
             self.reconnect()
 
         try:
-            self.smtpObj.sendmail(sender, receivers_list, self.build_msg(subject, content, attachment, sender, receivers))
+            self.smtpObj.sendmail(sender, receivers_list,
+                                  self.build_msg(subject, content, sender, receivers, attachment))
             logger.info('Email has been sent to {}'.format(receivers))
             return True
         except Exception:
             logger.exception('Fail to send email')
             return None
 
-    def reconnect(self, username=keys.email['username'], password=keys.email['password'],
-                  host=MAIL['MAIL_HOST'], port=MAIL['MAIL_PORT']):
+    def reconnect(self, username=keys.email['username'], password=keys.email['password'], host=MAIL['MAIL_HOST'],
+                  port=MAIL['MAIL_PORT']):
         logger.info('Reconnect mailing server')
         self.smtpObj = smtplib.SMTP()
         self.smtpObj.connect(host, port)
@@ -79,8 +81,7 @@ class Email:
     def close(self):
         self.smtpObj.quit()
 
-    def build_msg(self, subject, content, attachment=None,
-                  sender='TDIM.China@ap.jll.com', receivers='benson.chen@ap.jll.com'):
+    def build_msg(self, subject, content, sender, receivers, attachment=None):
         self.msg = MIMEMultipart()
         self.msg.attach(MIMEText(content, 'plain', 'utf-8'))
         self.msg['Subject'] = Header(subject, 'utf-8')

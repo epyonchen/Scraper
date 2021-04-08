@@ -54,7 +54,8 @@ class default_api:
     def _get_sign(self):
         return None
 
-    # Call api
+    # Call api, parse input parameters to api query, send query and get response back.
+    # Return response as json
     def call_api(self, **kwargs):
         query = ''
 
@@ -70,7 +71,8 @@ class default_api:
 
         return response
 
-    # Query from input df
+    # Traverse input df, get api parameters of single call in one row.
+    # Send as parameters to call_api(), append response json into result df.
     def query(self, source_df, **kwargs):
         results = pd.DataFrame()
         # Update default input

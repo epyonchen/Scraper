@@ -47,6 +47,22 @@ class Page:
             logger.exception('{}, {}, {}'.format(exc_type, exc_val, exc_tb))
         self.close()
 
+    def click(self, path):
+        while True:
+            try:
+                wait = WebDriverWait(self.driver, 10)
+                wait.until(ec.element_to_be_clickable((By.XPATH, path)))
+                self.driver.find_element_by_xpath(path).click()
+                self.soup = self.driver.page_source
+                return self.driver.page_source
+            except TimeoutException:
+                self.renew(self.base)
+                logger.exception('Timeout')
+
+    def close(self):
+        self.driver.quit()
+        logger.info('Close browser.')
+
     def exist(self, path):
         try:
             tab = self.driver.find_element_by_xpath(path)
@@ -64,24 +80,14 @@ class Page:
             logger.exception('Fail to open url {}'.format(url))
             exit(1)
 
-    def click(self, path):
-        while True:
-            try:
-                wait = WebDriverWait(self.driver, 10)
-                wait.until(ec.element_to_be_clickable((By.XPATH, path)))
-                self.driver.find_element_by_xpath(path).click()
-                self.soup = self.driver.page_source
-                return self.driver.page_source
-            except TimeoutException:
-                self.renew(self.base)
-                logger.exception('Timeout')
+    def get_requests_cookies(self):
+        import requests
+        webdriver_cookies = self.driver.get_cookies()
+        cookies = requests.Session().cookies
 
-    def send(self, path, value):
-        try:
-            if self.exist(path):
-                self.driver.find_element_by_xpath(path).send_keys(value)
-        except Exception:
-            logger.exception('Fail to send {} to {}'.format(value, path))
+        for c in webdriver_cookies:
+            cookies.set(c["name"], c['value'])
+        return cookies
 
     def renew(self, url='http://www.example.com', page_load_strategy='eager', **preference):
         if hasattr(self, 'driver'):
@@ -101,15 +107,10 @@ class Page:
         self.soup = None
         self.driver.get(url)
 
-    def close(self):
-        self.driver.quit()
-        logger.info('Close browser.')
+    def send(self, path, value):
+        try:
+            if self.exist(path):
+                self.driver.find_element_by_xpath(path).send_keys(value)
+        except Exception:
+            logger.exception('Fail to send {} to {}'.format(value, path))
 
-    def get_requests_cookies(self):
-        import requests
-        webdriver_cookies = self.driver.get_cookies()
-        cookies = requests.Session().cookies
-
-        for c in webdriver_cookies:
-            cookies.set(c["name"], c['value'])
-        return cookies
