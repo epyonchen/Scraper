@@ -15,8 +15,9 @@ from utils.utility_geocode import gcj02_to_wgs84
 logger = get_logger(__name__)
 
 
+# Refer to https://lbs.amap.com/
 class Amap(default_api):
-    # Required api input, 'api type': [corresponding keys]
+    # Required api input, 'api type': [corresponding parameters]
     _api_keys = {
         'text': ['keywords', 'types', 'city'],  # specific keyword
         'around': ['keywords', 'types', 'location', 'radius', 'city'],  # poi of round area, <lon, lat>
@@ -45,6 +46,14 @@ class Amap(default_api):
         super().__init__(api)
         self.base = 'https://restapi.amap.com/v3/place/{}?'.format(api)
 
+    def _get_sign(self, query):
+        query = ''
+        for key, value in self.parameters.items():
+            query = query + '&' + key + '=' + str(value)
+        raw_str = query + keys.amap['map_sk']
+
+        return self.get_md5(raw_str)
+
     def geocode_convert(self, output):
         if output:
             output['lon'], output['lat'] = str(output['location']).split(',')
@@ -54,20 +63,7 @@ class Amap(default_api):
     # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Amap, self).query(source_df=source_df, **kwargs)
-        # if not results.empty:
-        #     results[['lon', 'lat']] = results['location'].str.split(',', 1, expand=True)
-        #     results[['MapIT_lon', 'MapIT_lat']] = results.apply(
-        #         lambda x: self.geocode_convert(float(x['lon']), float(x['lat'])),
-        #         axis=1)
         return results
-
-    def _get_sign(self, query):
-        query = ''
-        for key, value in self.parameters.items():
-            query = query + '&' + key + '=' + str(value)
-        raw_str = query + keys.amap['map_sk']
-
-        return self.get_md5(raw_str)
 
     # Check if response valid
     def validate_response(self, api_response):

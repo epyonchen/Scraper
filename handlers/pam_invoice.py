@@ -31,19 +31,7 @@ def check_last_query(path):
         os.remove(path)
 
 
-# Validation code is valid with 4 letters and probability > 0.7
-def vcode_validate(result, threshold=0.7):
-    if not result:
-        return None
-    vcode = result['words_result'][0]['words'].replace(' ', '')
-    prop = result['words_result'][0]['probability']['average']
-    vcode = ''.join(re.findall(re.compile('[A-Za-z0-9]+'), vcode))
-    if (len(vcode) == 4) and prop > threshold:
-        return vcode
-    else:
-        return None
-
-
+# Send formatted email to users, according to invoice situation
 def invoice_send_email(entity, receiver, attachment):
     # Send email
     scrapymail = Email()
@@ -64,6 +52,19 @@ def invoice_send_email(entity, receiver, attachment):
     scrapymail.close()
 
 
+# Validation code is valid with 4 letters and probability > 0.7
+def vcode_validate(result, threshold=0.7):
+    if not result:
+        return None
+    vcode = result['words_result'][0]['words'].replace(' ', '')
+    prop = result['words_result'][0]['probability']['average']
+    vcode = ''.join(re.findall(re.compile('[A-Za-z0-9]+'), vcode))
+    if (len(vcode) == 4) and prop > threshold:
+        return vcode
+    else:
+        return None
+
+
 class PAM_Invoice:
 
     def __init__(self, link, username, password):
@@ -77,18 +78,34 @@ class PAM_Invoice:
         self.cookies = requests.cookies.RequestsCookieJar()
         self.df = dict()
 
-    # Crop validation code pic from screen shot
-    def get_vcode_pic(self):
+    # Delete previous query file and download a new one
+    def download_file(self, query, file_name, file_dir=PATH['FILE_DIR']):
+        file_path = file_dir + r'\{}.xls'.format(file_name)
+        check_last_query(file_path)
         try:
-            self.web.driver.save_screenshot(PATH['SCREENSHOT_PATH'])
-            pic = self.web.driver.find_element_by_xpath('//*[@id="crcpic"]')
+            self.update_cookies()
+            response = self.session.get(query)
+            with open(file_path, 'wb') as writer:
+                writer.write(response.content)
+            logger.info('Download file {}.'.format(file_path))
+            return True
         except Exception:
-            logger.exception('Unable to get validation code pic.')
+            logger.exception('Fail to download file {}'.format(file_path))
             return None
-        vcode_pic = Image.open(PATH['SCREENSHOT_PATH'])
-        vcode_pic = vcode_pic.crop((pic.location['x'], pic.location['y'], pic.location['x'] + pic.size['width'],
-                                    pic.location['y'] + pic.size['height']))
-        return vcode_pic
+
+    # Export excel with tax records
+    def get(self, startdate=TIME['PRE3MONTH'], enddate=TIME['TODAY'], valid=''):
+        logger.info('Query start date: {}, end date: {}, valid: {}'.format(str(startdate), str(enddate), str(valid)))
+        tax_query = self.base + 'cxtj/getInvInfo.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz=' \
+                                '&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;' \
+                                '0.16;0.17;0.03;0.05;0.015;9999&xsdjh=&bszt='.format(str(startdate), str(enddate))
+        tax_detail_query = self.base + 'cxtj/getInvInfoMx.do?act=down&machineID=&type=&startDate={}&endDate={}&' \
+                                       'zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;' \
+                                       '0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&' \
+                                       'xsdjh='.format(str(startdate), str(enddate), str(valid))
+        tax_flag = self.download_file(query=tax_query, file_name=PATH['TAX_FILE'])
+        tax_detail_flag = self.download_file(query=tax_detail_query, file_name=PATH['TAX_DETAIL_FILE'])
+        return tax_flag and tax_detail_flag
 
     # Not return validation code until get valid one
     def get_vcode(self):
@@ -122,6 +139,19 @@ class PAM_Invoice:
             else:
                 return None
 
+    # Crop validation code pic from screen shot
+    def get_vcode_pic(self):
+        try:
+            self.web.driver.save_screenshot(PATH['SCREENSHOT_PATH'])
+            pic = self.web.driver.find_element_by_xpath('//*[@id="crcpic"]')
+        except Exception:
+            logger.exception('Unable to get validation code pic.')
+            return None
+        vcode_pic = Image.open(PATH['SCREENSHOT_PATH'])
+        vcode_pic = vcode_pic.crop((pic.location['x'], pic.location['y'], pic.location['x'] + pic.size['width'],
+                                    pic.location['y'] + pic.size['height']))
+        return vcode_pic
+
     # Login
     @func_set_timeout(timeout=36000, allowOverride=True)
     def login(self):
@@ -153,39 +183,6 @@ class PAM_Invoice:
                         return True
             else:
                 self.renew()
-
-    # Export excel with tax records
-    def get(self, startdate=TIME['PRE3MONTH'], enddate=TIME['TODAY'], valid=''):
-        logger.info('Query start date: {}, end date: {}, valid: {}'.format(str(startdate), str(enddate), str(valid)))
-        tax_query = self.base + 'cxtj/getInvInfo.do?act=down&machineID=&type=&startDate={}&endDate={}&zfbz=' \
-                                '&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&str_shuilv=0.04;0.06;0.10;0.09;0.11;0.13;' \
-                                '0.16;0.17;0.03;0.05;0.015;9999&xsdjh=&bszt='.format(str(startdate), str(enddate))
-        tax_detail_query = self.base + 'cxtj/getInvInfoMx.do?act=down&machineID=&type=&startDate={}&endDate={}&' \
-                                       'zfbz={}&fpxz=&gfmc=&fpdm=&startFphm=&endFphm=&spmc=&spgg=&str_shuilv=0.04;' \
-                                       '0.06;0.10;0.09;0.11;0.13;0.16;0.17;0.03;0.05;0.015;9999&' \
-                                       'xsdjh='.format(str(startdate), str(enddate), str(valid))
-        tax_flag = self.download_file(query=tax_query, file_name=PATH['TAX_FILE'])
-        tax_detail_flag = self.download_file(query=tax_detail_query, file_name=PATH['TAX_DETAIL_FILE'])
-        return tax_flag and tax_detail_flag
-
-    # Delete previous query file and download a new one
-    def download_file(self, query, file_name, file_dir=PATH['FILE_DIR']):
-        file_path = file_dir + r'\{}.xls'.format(file_name)
-        check_last_query(file_path)
-        try:
-            self.update_cookies()
-            response = self.session.get(query)
-            with open(file_path, 'wb') as writer:
-                writer.write(response.content)
-            logger.info('Download file {}.'.format(file_path))
-            return True
-        except Exception:
-            logger.exception('Fail to download file {}'.format(file_path))
-            return None
-
-    def update_cookies(self):
-        self.cookies = self.web.get_requests_cookies()
-        self.session.cookies.update(self.cookies)
 
     # Renew selenium and session
     def renew(self):
@@ -229,3 +226,7 @@ class PAM_Invoice:
         detail_df['timestamp'] = TIME['TIMESTAMP']
 
         return df, detail_df
+
+    def update_cookies(self):
+        self.cookies = self.web.get_requests_cookies()
+        self.session.cookies.update(self.cookies)

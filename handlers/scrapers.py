@@ -153,4 +153,3 @@ class TwoStepScraper(Scraper):
     def get_item_detail(self, item):
         item_detail = item
         return item_detail
-

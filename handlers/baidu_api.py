@@ -19,6 +19,7 @@ from utils.utility_geocode import bd09_to_wgs84
 logger = get_logger(__name__)
 
 
+# Refer to https://fanyi-api.baidu.com/api/trans/product/index
 class Baidu_map(default_api):
     # Required api input, 'api type': [corresponding keys]
     _api_keys = {
@@ -49,12 +50,15 @@ class Baidu_map(default_api):
         'lon': 'lng'
     }
 
-    # Convert bd to wgs
-    def geocode_convert(self, output):
-        if output:
-            output['lon'], output['lat'] = str(output['location']).split(',')
-            output['MapIT_lon'], output['MapIT_lat'] = bd09_to_wgs84(float(output['lon']), float(output['lat']))
-        return output
+    def __init__(self, api='place'):
+        super(Baidu_map, self).__init__(api)
+        self.base = 'http://api.map.baidu.com/place/v2/search?'
+        self.pre_query = '/place/v2/search?'
+
+    def _get_sign(self, query):
+        query = self.pre_query + query
+        raw_str = urllib.parse.quote(query, safe="/:=&?#+!$,;'@()*[]") + keys.baidu['map_sk']
+        return self.get_md5(urllib.parse.quote_plus(raw_str))
 
     # Validate if location in return records
     @staticmethod
@@ -64,21 +68,16 @@ class Baidu_map(default_api):
                 return True
         return False
 
-    def __init__(self, api='place'):
-        super(Baidu_map, self).__init__(api)
-        self.base = 'http://api.map.baidu.com/place/v2/search?'
-        self.pre_query = '/place/v2/search?'
-        # self.input_keys = self._api_keys[api].copy()
-
-    def _get_sign(self, query):
-        query = self.pre_query + query
-        raw_str = urllib.parse.quote(query, safe="/:=&?#+!$,;'@()*[]") + keys.baidu['map_sk']
-        return self.get_md5(urllib.parse.quote_plus(raw_str))
+    # Convert bd to wgs
+    def geocode_convert(self, output):
+        if output:
+            output['lon'], output['lat'] = str(output['location']).split(',')
+            output['MapIT_lon'], output['MapIT_lat'] = bd09_to_wgs84(float(output['lon']), float(output['lat']))
+        return output
 
     # Query from input df
     def query(self, source_df, **kwargs):
         results = super(Baidu_map, self).query(source_df=source_df, **kwargs)
-
         return results
 
     # Check if response valid
