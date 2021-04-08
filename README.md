@@ -47,11 +47,39 @@ Web Scraper package, fork from https://github.com/epyonchen/Scraper
         - invoice_send_email(): send email to notify PAM user if irregular invoice exists with attachment
         - vcode_validate(): check if validation code is valid
         - class pam_invoice
+        - download_file(): download invoice list as xls file
+        - get(): get invoice list
         - get_vcode(): send validation code image to baidu ocr api, until getting a valid validation code
         - get_vcode_pic(): download validation code image and trim to appropriate size
         - login(): login invoice webpage
-        - get(): get invoice list
-        - download_file(): download invoice list as xls file
-        - run(): 
-
+        - renew(): renew selenium and session if execution takes too long  
+        - run(): execution of pam invoice login, extraction and upload
+        - update_cookies: update cookies when download file
+      - pagemanipulate: simulate human action on browser if requests is not working
+        - class Page: new a browser by selenium and geckodriver
+        - click(): mouse click on targeting path
+        - close(): close current browser   
+        - exist(): check if targeted path exists in page
+        - get(): open url
+        - get_requests_cookies(): get current cookies
+        - renew(): close current browser and reopen one
+        - send(): send given value to targeting path
+      - db: database interation
+        - class DbHandler: get server, database, schema and create a connection to database
+        - create_table(): create table with given name and columns
+        - upload(): upload df to targeted table
+        - select(): extract data from database, return as df
+        - call_sp(): execute stored procedure
+        - update(): update value in database
+        - exist(): check if table exists
+        - run(): execute query
+        - close(): close connection with database
+        - log(): write log in log table
+        - _get_table_col_size(): get table's columns' size
+        - _update_table_col_size(): update column size in table
+        - _drop_table_duplicate(): drop duplicate records
+        - get_logs(): get history of job
+        - get_to_runs(): get to-run tasks comparing history and today
+        - class ODBC: inheritance of DbHandler using pyodbc
+    2. utils: utilities, common-used functions
   ### Tables and views
