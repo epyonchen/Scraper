@@ -81,5 +81,22 @@ Web Scraper package, fork from https://github.com/epyonchen/Scraper
         - get_logs(): get history of job
         - get_to_runs(): get to-run tasks comparing history and today
         - class ODBC: inheritance of DbHandler using pyodbc
-    2. utils: utilities, common-used functions
+  2. utils: utilities, common-used functions
+    - utility_common: common-used path, value and config
+      - get_nested_value(): get nested dict value
+      - excel_to_df(): import excel to dataframe
+      - df_to_excel(): export dataframe to excel
+      - get_df_col_size(): get colname: size pair dict of dataframe
+      - chunksize_df_col_size(): trim dafaframe maximum size of value in each column
+      - get_job_name(): get file name of current execution
+      - renew_timestamp(): renew value of timestamp dynamically
+    - utility_email: package to send email
+      - send(): send email with inputs parameters
+      - reconnect(): reconnect email server if any failures
+      - check_connection(): check connection of email server is alive
+      - close(): close connection of email server
+      - build_msg(): build a formatted email object
+    - utility_geocode: conversions among different format of geocodes
+    - utility_log: logging functions
   ### Tables and views
+  Please refer to handbook.
