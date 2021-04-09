@@ -25,7 +25,7 @@ class Amap(default_api):
         'detail': ['id']
     }
 
-    # Default api parameters
+    # Default api parameters, offset: response per page
     _default_kwargs = {
         'citylimit': True,
         'offset': '1',

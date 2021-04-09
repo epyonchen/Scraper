@@ -7,8 +7,6 @@
 
 # Ignore environment and result files
 /Archive
-/InSpy
-/Reference
 /Result
 /venv
 /__pycache__
@@ -18,4 +16,3 @@
 # Ignore credential and testing files
 keys.py
 jobs/test.py
-google_key.json
